@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude Code Extras</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as the lessons — one column, each extra a command table */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Lesson 13 · Claude Code Extras · v2.1.299</span>
+    <h1>Claude Code Extras</h1>
+    <p class="lede">GitHub Actions, IDE, status line, background &amp; cloud sessions, remote control, worktrees, review commands, auto mode, sandbox, model / effort / usage commands. Ellam installed CLI (<code>claude --help</code>) + official docs (code.claude.com/docs, 2026-10-14) vachu verify pannadhu. Unga version vera-na <code>/help</code> paathu confirm pannunga.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#why">Why</a></li>
+      <li><a href="#gha">GitHub Actions</a></li>
+      <li><a href="#ide">IDE</a></li>
+      <li><a href="#ui">Status line</a></li>
+      <li><a href="#bg">Background</a></li>
+      <li><a href="#cloud">Cloud &amp; remote</a></li>
+      <li><a href="#wt">Worktrees</a></li>
+      <li><a href="#review">Review</a></li>
+      <li><a href="#safety">Auto &amp; sandbox</a></li>
+      <li><a href="#model">Model &amp; cost</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Why</span>
+      <h2>Terminal-ah thaandi Claude Code</h2>
+    </div>
+    <div class="why stack">
+      <p>Basics + advanced mudinjaachu. Ippo <strong>real team workflow</strong>: PR-la <code>@claude</code>, IDE-kulla diff, laptop close pannaalum odura background/cloud sessions, parallel worktrees. Interview-la "naan Claude Code-ah team-la eppadi use panren" nu kekkum podhu idhu dhaan answer.</p>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>Ore terminal, ore task,
+Claude odum podhu wait pannuradhu</pre><p>Neenga dhaan bottleneck.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>Task A: claude -w feature-a --bg
+Task B: claude -w bugfix-b --bg
+claude agents  → rendaiyum monitor</pre><p>Parallel, isolated, neenga review mattum.</p></div>
+    </div>
+  </section>
+
+  <section id="gha">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · CI</span>
+      <h2>GitHub Actions: PR-la <code>@claude</code></h2>
+      <p class="muted">Action: <code>anthropics/claude-code-action@v1</code>. Agent SDK mela build pannadhu.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Setup</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>/install-github-app</code></td><td>Quick setup: GitHub App install, secret add, workflow PR ready pannum. github.com repos mattum; <code>gh auth login</code> munnadi venum; repo admin access venum</td></tr>
+        <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Repo secret: API key (Claude Console)</td></tr>
+        <tr><td><code>CLAUDE_CODE_OAUTH_TOKEN</code></td><td>Subscription token: <code>claude setup-token</code> vachu generate</td></tr>
+        <tr><td><b>Interactive mode</b></td><td><code>prompt</code> input illana: comment-la <code>@claude</code> mention pannaa odum</td></tr>
+        <tr><td><b>Automation mode</b></td><td><code>prompt</code> input irundha: event / cron-la thaane odum</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>.github/workflows/claude.yml</span></div><pre>name: Claude Code
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+jobs:
+  claude:
+    if: contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--max-turns 5"</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Input</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>prompt</code></td><td>Instructions or skill (<code>/skill-name</code>)</td></tr>
+        <tr><td><code>claude_args</code></td><td>CLI flags: <code>--max-turns</code>, <code>--model</code>, <code>--allowedTools</code>, <code>--mcp-config</code></td></tr>
+        <tr><td><code>trigger_phrase</code></td><td>Default <code>@claude</code></td></tr>
+        <tr><td><code>settings</code></td><td>Claude Code settings JSON / path</td></tr>
+        <tr><td><code>plugins</code>, <code>plugin_marketplaces</code></td><td>Plugins install panni use</td></tr>
+        <tr><td><code>use_bedrock</code> / <code>use_vertex</code> / <code>use_foundry</code></td><td>Cloud provider vazhiya, OIDC auth</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>anthropic_api_key: "sk-ant-abc123..."</pre><p>Key repo-la commit. Leak.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}</pre><p>GitHub Secret. Plus <code>--max-turns</code> + workflow timeout = cost control.</p></div>
+    </div>
+    <div class="note">Security built-in: triggering user-ku repo <b>write access</b> venum; bot actors default-aa reject (loop thadukka). GitLab-ku thani page irukku (GitLab CI/CD).</div>
+  </section>
+
+  <section id="ide">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Editor</span>
+      <h2>IDE integrations</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Option</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>VS Code</code> (Cursor-um)</td><td>Claude Code extension: diffs editor-la, selection context-aa pogum</td></tr>
+        <tr><td><code>JetBrains</code></td><td>IntelliJ, PyCharm, WebStorm... plugin</td></tr>
+        <tr><td><code>/ide</code></td><td>Session-kulla IDE integrations manage + status</td></tr>
+        <tr><td><code>claude --ide</code></td><td>Start-laye IDE-oda connect (ore oru valid IDE irundha)</td></tr>
+        <tr><td><code>/terminal-setup</code></td><td>Shift+Enter newline keybinding install (VS Code, Cursor, Alacritty, Zed...)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="ui">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Personalize</span>
+      <h2>Status line, output style, keybindings</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>/statusline</code></td><td>Keezha status line configure. "show model, git branch, context %" nu describe pannalaam; argument illana shell prompt-la irundhu auto</td></tr>
+        <tr><td><code>/output-style [style]</code></td><td>List / switch (v2.1.269+). <code>Learning</code>, <code>Explanatory</code>, <code>Concise</code>...</td></tr>
+        <tr><td><code>/keybindings</code></td><td>Keyboard shortcuts file open (<code>~/.claude/keybindings.json</code>)</td></tr>
+        <tr><td><code>/config</code></td><td>Settings UI; <code>/config key=value</code> direct set</td></tr>
+        <tr><td><code>/status</code></td><td>Version, model, account, connectivity</td></tr>
+        <tr><td><code>/export [file]</code></td><td>Conversation-ah text-aa save</td></tr>
+        <tr><td><code>/btw [question]</code></td><td>Side question: main conversation-la serkkaama</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="bg">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Parallel</span>
+      <h2>Background sessions</h2>
+      <p class="muted">Terminal-ah free pannittu Claude-ah pinnaadi odavaikkuradhu.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>claude --bg "fix flaky tests"</code></td><td>Background-la start, udane return, id print</td></tr>
+        <tr><td><code>/background [prompt]</code></td><td>Odura session-ah background-ku anuppu</td></tr>
+        <tr><td><code>claude agents</code></td><td>Agent view: ella sessions list + manage. <code>--json</code> for scripts</td></tr>
+        <tr><td><code>claude attach &lt;id|name&gt;</code></td><td>Background session-ah indha terminal-la open. Ctrl+Z shell-ku thirumba; session odikkitte irukkum</td></tr>
+        <tr><td><code>claude logs &lt;id|name&gt;</code></td><td>Recent output paakka</td></tr>
+        <tr><td><code>claude stop &lt;id&gt;</code></td><td>Stop; conversation save aagum, <code>attach</code> vachu resume</td></tr>
+        <tr><td><code>claude respawn &lt;id&gt;|--all</code></td><td>Puthu Claude binary-oda restart</td></tr>
+        <tr><td><code>claude rm &lt;id&gt;</code></td><td>Session + worktree delete</td></tr>
+        <tr><td><code>/tasks</code></td><td>Current session-la background work (subagents, shells)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="cloud">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Anywhere</span>
+      <h2>Cloud sessions &amp; Remote Control</h2>
+      <p class="muted">claude.ai subscription venum.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>claude --cloud "add pagination"</code></td><td>Anthropic cloud infra-la session create (laptop off pannalaam). claude.ai/code-la paakkalaam</td></tr>
+        <tr><td><code>claude --cloud &lt;id|url&gt;</code></td><td>Existing cloud session-oda attach</td></tr>
+        <tr><td><code>/teleport</code> (<code>/tp</code>), <code>claude --teleport</code></td><td>Cloud session-ah (branch + conversation) local terminal-ku izhuthu varum</td></tr>
+        <tr><td><code>/remote-control</code> (<code>/rc</code>)</td><td>Local session-ah claude.ai-la irundhu (phone-la kooda) control panna</td></tr>
+        <tr><td><code>claude --remote-control [name]</code></td><td>Start-laye Remote Control on</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Confusion</span><pre>Cloud session = Remote Control</pre><p>Illa.</p></div>
+      <div class="good"><span class="tag">Clear</span><pre>Cloud   → code Anthropic machine-la odum
+Remote  → code UNGA machine-la odum,
+          control mattum browser/phone-la</pre><p>Secrets / local DB venumna Remote Control.</p></div>
+    </div>
+  </section>
+
+  <section id="wt">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · Isolation</span>
+      <h2>Worktrees</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>claude -w feature-x</code></td><td>Thani git worktree (thani folder + branch) create panni session. Files clash aagaadhu</td></tr>
+        <tr><td><code>claude -w x --tmux</code></td><td>Worktree-ku tmux session (iTerm2 native panes available-na)</td></tr>
+        <tr><td><code>isolation: worktree</code></td><td>Subagent frontmatter-la: subagent thani worktree-la</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Repo-la kammi oru commit irukkanum. Mudinjadhum review → merge → <code>claude rm</code> / <code>git worktree remove</code>.</div>
+  </section>
+
+  <section id="review">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Quality</span>
+      <h2>Review commands</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>/code-review [level] [--fix] [--comment] [target]</code></td><td>Current diff / PR / branch correctness review. Levels <code>low</code>…<code>max</code>; <code>--fix</code> apply; <code>--comment</code> PR inline comments</td></tr>
+        <tr><td><code>/code-review ultra</code></td><td>Cloud multi-agent deep review (user trigger, billed)</td></tr>
+        <tr><td><code>/security-review</code></td><td>Branch vs origin default branch: injection, auth, data exposure</td></tr>
+        <tr><td><code>/simplify</code></td><td>Reuse / simplification cleanups (bugs illa, quality mattum)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="safety">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Safety</span>
+      <h2>Auto mode, sandbox, doctor, safe mode</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>auto</code> mode (Shift+Tab)</td><td>Classifier safe actions-ah approve, risky-ah block</td></tr>
+        <tr><td><code>claude auto-mode defaults</code></td><td>Default allow / soft_deny / hard_deny rules JSON</td></tr>
+        <tr><td><code>claude auto-mode config</code></td><td>Unga effective config</td></tr>
+        <tr><td><code>claude auto-mode critique</code></td><td>Unga custom rules-ku AI feedback</td></tr>
+        <tr><td><code>claude auto-mode reset</code></td><td>Shipped defaults-ku reset</td></tr>
+        <tr><td><code>/sandbox</code></td><td>Sandbox mode toggle (supported platforms mattum): filesystem/network isolation</td></tr>
+        <tr><td><code>claude doctor</code> / <code>/doctor</code></td><td>Install health check; <code>/doctor</code> fixes-um propose pannum</td></tr>
+        <tr><td><code>claude --safe-mode</code></td><td>CLAUDE.md, skills, plugins, hooks, MCP ellam off. "Edhu break pannudhu?" debug-ku</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="model">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Cost</span>
+      <h2>Model, effort, usage</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>/model [model]</code></td><td>Model switch + default-aa save. Picker-la ←/→ effort</td></tr>
+        <tr><td><code>/effort [level|auto|status]</code></td><td><code>low</code>…<code>xhigh</code>, <code>max</code>, <code>auto</code></td></tr>
+        <tr><td><code>/fast [on|off]</code></td><td>Fast mode (supported models, premium price)</td></tr>
+        <tr><td><code>/usage</code> (<code>/cost</code>, <code>/stats</code>)</td><td>Session cost, plan limits, activity</td></tr>
+        <tr><td><code>/context</code></td><td>Context window usage</td></tr>
+        <tr><td><code>--max-budget-usd</code></td><td>Print mode spending cap</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>Ella task-kkum max effort + biggest model</pre><p>Slow + expensive.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>Rename / typo   → low effort
+Feature / debug → high / xhigh
+Architecture    → max</pre><p>Task-ku yetha effort. Exam "Model Selection" domain idhu.</p></div>
+    </div>
+  </section>
+
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 10 · Your turn</span>
+      <h2>Practice</h2>
+      <span class="counter" id="count">0 / 8 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span><code>/statusline</code>: "show model and git branch" nu sollunga</span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span><code>/usage</code> and <code>/context</code> paarunga. Indha session-ku evvalavu cost aachu?</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span><code>todo-api</code>-la: <code>claude -w add-delete --bg "add DELETE /todos/:id with test"</code></span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span><code>claude agents</code> → <code>claude logs &lt;id&gt;</code> → <code>claude attach &lt;id&gt;</code></span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span>Worktree folder-la <code>npm test</code>, <code>git diff</code> review, merge</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span><code>/code-review</code> run panni findings padinga</span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span><code>claude auto-mode defaults</code> output padinga: edhu hard_deny?</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span>(GitHub repo irundha) <code>/install-github-app</code>, apram PR-la <code>@claude explain this change</code></span></label></li>
+    </ol>
+  </section>
+
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 11 · Check</span>
+      <h2>Quick quiz</h2>
+    </div>
+    <div class="stack">
+      <details><summary>1. GitHub Action workflow-la <code>prompt</code> input illa. Eppo odum?</summary><p><b>Interactive mode:</b> issue/PR comment-la <code>@claude</code> (trigger phrase) mention pannaa mattum.</p></details>
+      <details><summary>2. Local DB + secrets venum, aana phone-la irundhu control pannanum. Cloud session-aa Remote Control-aa?</summary><p><b>Remote Control.</b> Code unga machine-la dhaan odum; cloud session Anthropic infra-la odum, unga local DB access illa.</p></details>
+      <details><summary>3. Rendu features parallel-ah, same repo. Files clash aaga koodaadhu. Eppadi?</summary><p><code>claude -w feature-a</code>, <code>claude -w feature-b</code> (thani worktrees), venumna <code>--bg</code>.</p></details>
+      <details><summary>4. Claude Code weird-aa behave pannudhu, edhu kaaranam nu theriyala. Mudhal step?</summary><p><code>claude --safe-mode</code> (customizations off) + <code>/doctor</code>. Safe mode-la sariyaa irundha unga hook / plugin / CLAUDE.md dhaan culprit.</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"Naan Claude Code-ah terminal-oda nirutthala: PR review-ku GitHub Action, parallel tasks-ku worktrees + background sessions, cost-ku /usage + task-wise effort, risky changes-ku /security-review. Agent-ah team workflow-la oru reviewer-aa vechirukken, replacement-aa illa."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson13-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){ b.closest("li").classList.toggle("done", b.checked); if (b.checked) done++; });
+    count.textContent = done + " / " + boxes.length + " done";
+  }
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>

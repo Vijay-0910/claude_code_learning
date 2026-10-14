@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Models and Cost</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as the lessons — model table, then cost levers in the order you should pull them */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Lesson 5 · CCDV-F: Model Selection &amp; Optimization (17%)</span>
+    <h1>Models &amp; Cost</h1>
+    <p class="lede">Endha model, evvalavu yosikkanum (thinking + effort), cost-ah eppadi kuraikkuradhu (caching, batch, token counting), cloud platforms. Prices &amp; IDs: claude-api skill reference, cached 2026-10-06. Exam-ku munnadi official pricing page-la oru thadava confirm pannunga.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#why">Why</a></li>
+      <li><a href="#models">Models</a></li>
+      <li><a href="#choose">Choosing</a></li>
+      <li><a href="#tokens">Tokens</a></li>
+      <li><a href="#thinking">Thinking &amp; effort</a></li>
+      <li><a href="#caching">Caching</a></li>
+      <li><a href="#batch">Batch</a></li>
+      <li><a href="#count">Count &amp; Models API</a></li>
+      <li><a href="#fast">Fast mode</a></li>
+      <li><a href="#cloud">Cloud</a></li>
+      <li><a href="#costtask">Cost per task</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Why</span>
+      <h2>Yen idhu mukkiyam?</h2>
+    </div>
+    <div class="why stack">
+      <p>Same app, thappaana model / settings vechaa <b>10x–40x</b> cost difference varum. Production-la "nalla answer" mattum podhaadhu: <b>quality, latency, cost</b> moonaiyum balance pannanum. Exam-la 17%.</p>
+    </div>
+  </section>
+
+  <section id="models">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Lineup</span>
+      <h2>Current models</h2>
+      <p class="muted">Prices per 1M tokens (MTok). Exact ID-ah apdiye copy pannunga; date suffix serkka koodaadhu.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Model ID</th><th>Context</th><th>Input $</th><th>Output $</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><code>claude-fable-5-1</code></td><td>1M</td><td>10.00</td><td>50.00</td><td>Most capable widely released; hardest reasoning, long agentic work</td></tr>
+        <tr><td><code>claude-opus-5-5</code></td><td>1M</td><td>4.00</td><td>20.00</td><td><b>Default</b> Opus: complex coding, agents</td></tr>
+        <tr><td><code>claude-sonnet-5-5</code></td><td>1M</td><td>2.00</td><td>10.00</td><td>Speed + capability; everyday coding, agents, enterprise</td></tr>
+        <tr><td><code>claude-haiku-5-5</code></td><td>1M</td><td>0.10</td><td>0.50</td><td>Fast + cheap; classification, extraction, subagents (≤100K-token prompts; beyond $0.50 / $2.50)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Older but still served: <code>claude-fable-5</code>, <code>claude-opus-5</code>, <code>claude-opus-4-8</code>, <code>claude-opus-4-7</code>, <code>claude-opus-4-6</code>, <code>claude-sonnet-5</code>, <code>claude-sonnet-4-6</code>, <code>claude-haiku-4-5</code> (200K context). Max output: current models 128K tokens (streaming venum).</div>
+  </section>
+
+  <section id="choose">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Tradeoffs</span>
+      <h2>Endha model eppo?</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Use case</th><th>Model</th><th>Yen</th></tr></thead>
+      <tbody>
+        <tr><td>Support ticket classify, 1 lakh/day</td><td><code>Haiku</code></td><td>Simple task, high volume, latency mukkiyam</td></tr>
+        <tr><td>Chat assistant, code help</td><td><code>Sonnet</code></td><td>Nalla quality, fast, mid cost</td></tr>
+        <tr><td>Multi-file refactor, complex agent</td><td><code>Opus</code></td><td>Deep reasoning, long tool loops</td></tr>
+        <tr><td>Research-grade, ultra-hard problem</td><td><code>Fable</code></td><td>Max capability; cost + latency adhigam</td></tr>
+        <tr><td>Agent-oda worker / subagent</td><td><code>Haiku</code> or <code>Sonnet</code></td><td>Main agent Opus, reading-heavy sub-tasks cheap model</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>"Cost kammi pannanum, ellathaiyum
+Haiku-ku maathiduvom"</pre><p>Measure pannaama downgrade. Quality kurainjaa retries koodum, total cost koodalaam.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>1. Caching (free win) first
+2. Same model, lower effort try
+3. Eval vachu measure
+4. Quality hold aana dhaan cheaper model</pre><p>Newest model low effort, pazhaiya model high effort-ah vida nalla irukkum + cheap.</p></div>
+    </div>
+    <div class="note">Model maathum podhu <b>breaking changes</b> irukkum (removed params, default effort maarudhu). Production-la model ID-ah pin pannunga; upgrade panna eval run panni dhaan.</div>
+  </section>
+
+  <section id="tokens">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Fundamentals</span>
+      <h2>Tokens &amp; context window</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Concept</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>Token</code></td><td>Text-oda chinna piece (word part). Billing unit. Code, Tamil text-ku token count adhigam</td></tr>
+        <tr><td><code>Context window</code></td><td>Oru request-la model paakka mudiyura max tokens (input + output). Current models 1M</td></tr>
+        <tr><td><code>max_tokens</code></td><td>Output ceiling; model-ku idhu theriyaadhu, hard cut</td></tr>
+        <tr><td><code>Non-determinism</code></td><td>Same prompt, vera vera answer varalaam. Tests-la exact string match pannaadheenga</td></tr>
+        <tr><td><code>Tokenizer</code></td><td>Model family-ku maarum. Opus 4.7+ tokenizer ~1×–1.35× adhigam tokens (Opus 4.6 / older-oda compare). Migrate pannum podhu re-count</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Long context-la ellathaiyum dump panna quality kurayum + cost koodum. Relevant content mattum anuppunga (context engineering, Lesson 6).</div>
+  </section>
+
+  <section id="thinking">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Reasoning</span>
+      <h2>Adaptive thinking + effort</h2>
+      <p class="muted">Claude answer-ku munnadi "yosikkum". Evvalavu yosikkanum nu <b>effort</b> control pannum.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>thinking.ts</span></div><pre>const response = await client.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  thinking: { type: "adaptive", display: "summarized" },  // Opus 5.5-la thinking eppovum on
+  output_config: { effort: "high" },                       // low | medium | high | xhigh | max
+  messages: [{ role: "user", content: "Indha algorithm-oda time complexity prove pannu" }],
+});
+
+for (const block of response.content) {
+  if (block.type === "thinking") console.log("Thinking:", block.thinking);
+  else if (block.type === "text") console.log("Answer:", block.text);
+}</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Effort</th><th>Eppo</th></tr></thead>
+      <tbody>
+        <tr><td><code>low</code></td><td>Chat, classification, subagents, high-volume routes</td></tr>
+        <tr><td><code>medium</code></td><td>Opus 5.5 + Haiku 5.5 <b>default</b>; cost-saving step-down</td></tr>
+        <tr><td><code>high</code></td><td>Most other models default; intelligence-sensitive work-ku minimum</td></tr>
+        <tr><td><code>xhigh</code></td><td>Coding + agentic tasks-ku best (Claude Code default)</td></tr>
+        <tr><td><code>max</code></td><td>Correctness cost-ah vida mukkiyam</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Stale (old tutorials)</span><pre>thinking: { type: "enabled", budget_tokens: 10000 }</pre><p>Opus 5.5, Fable 5.x, Sonnet 5.x, Opus 4.7/4.8, Haiku 5.5-la <b>400 error</b>. Opus 4.6 / Sonnet 4.6-la deprecated.</p></div>
+      <div class="good"><span class="tag">Current</span><pre>thinking: { type: "adaptive" },
+output_config: { effort: "medium" }</pre><p>Claude thaane evvalavu yosikkanum nu decide pannum; effort vachu depth + spend control.</p></div>
+    </div>
+    <div class="note"><b>Opus 5.5 specifics:</b> <code>{type: "disabled"}</code> 400 (effort kuraikkunga). <code>display</code> default <code>"omitted"</code>: thinking text empty-aa varum, aana bill aagum. User-ku reasoning stream pannanumna <code>"summarized"</code>. Thinking blocks-ah multi-turn-la apdiye thirumba anuppunga.</div>
+  </section>
+
+  <section id="caching">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Biggest free win</span>
+      <h2>Prompt caching</h2>
+      <p class="muted">Same periya prefix (system prompt, document, tools) thirumba thirumba anuppum podhu, adhai cache pannina reads romba cheap (Opus 5.5: cache read $0.20/MTok vs input $4).</p>
+    </div>
+    <div class="why stack">
+      <p><strong>Golden rule: prefix match.</strong> Render order <code>tools → system → messages</code>. Prefix-la oru byte maarinaalum adhukku apram irukkura cache ellam invalid.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>cache.ts</span></div><pre>// Simplest: top-level auto caching (last cacheable block)
+const r1 = await client.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  cache_control: { type: "ephemeral" },
+  system: bigPolicyDocument,                // periya, maaraadha content
+  messages: [{ role: "user", content: "Refund policy enna?" }],
+});
+
+// Manual breakpoint, 1 hour TTL
+const r2 = await client.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  system: [{ type: "text", text: bigPolicyDocument,
+             cache_control: { type: "ephemeral", ttl: "1h" } }],   // default TTL 5 min
+  messages: [{ role: "user", content: "Shipping policy enna?" }],
+});
+
+console.log(r2.usage.cache_creation_input_tokens);  // cache-la write (~1.25x cost, 5-min TTL)
+console.log(r2.usage.cache_read_input_tokens);      // cache-la irundhu read (cheap)
+console.log(r2.usage.input_tokens);                 // uncached (full price)</pre></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Silent cache killer</span><pre>system: `Today is ${new Date()}.
+${bigPolicyDocument}`</pre><p>Ovvoru request-um prefix vera. <code>cache_read_input_tokens</code> eppovum 0.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>system: bigPolicyDocument,   // frozen
+messages: [{ role: "user",
+  content: `Today: ${date}. ${question}` }]</pre><p>Dynamic content kadaisila, last breakpoint-ku apram.</p></div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td><code>Max breakpoints</code></td><td>4 per request</td></tr>
+        <tr><td><code>Min prefix</code></td><td>Opus 5.5 / Sonnet 5.5 / Haiku 5.5 / Fable 5.x: 512 tokens. Opus 4.6, Haiku 4.5: 4096. Kammiyaa irundhaa error illaama silently cache aagaadhu</td></tr>
+        <tr><td><code>Tools / model maathaadheenga</code></td><td>Tools position 0-la render; maathina full cache miss. Cache model-scoped</td></tr>
+        <tr><td><code>Scope</code></td><td>Workspace-wise isolated (Claude API); orgs-kulla share aagaadhu</td></tr>
+        <tr><td><code>Verify</code></td><td>Repeated requests-la <code>cache_read_input_tokens</code> &gt; 0 aa nu paarunga</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="batch">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · 50% off</span>
+      <h2>Message Batches API</h2>
+      <p class="muted">Udane answer vendaam (nightly reports, bulk classification) na batch: <b>50% cheaper</b>.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>batch.ts</span></div><pre>const batch = await client.messages.batches.create({
+  requests: tickets.map((t) =&gt; ({
+    custom_id: t.id,                       // result-ah match panna idhu dhaan key
+    params: {
+      model: "claude-haiku-5-5",
+      max_tokens: 256,
+      messages: [{ role: "user", content: `Classify: ${t.text}` }],
+    },
+  })),
+});
+
+// Poll until ended
+let status = await client.messages.batches.retrieve(batch.id);
+while (status.processing_status !== "ended") {
+  await new Promise((r) =&gt; setTimeout(r, 60_000));
+  status = await client.messages.batches.retrieve(batch.id);
+}
+
+for await (const result of await client.messages.batches.results(batch.id)) {
+  if (result.result.type === "succeeded") {
+    console.log(result.custom_id, result.result.message.content);
+  } else {
+    console.log(result.custom_id, result.result.type);   // errored | canceled | expired
+  }
+}</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Fact</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td><code>Size</code></td><td>Up to 100,000 requests or 256 MB per batch</td></tr>
+        <tr><td><code>Time</code></td><td>Most within 1 hour; max 24 hours</td></tr>
+        <tr><td><code>Results</code></td><td>29 days available; <b>any order</b>-la varum, <code>custom_id</code> vachu match, position vachu illa</td></tr>
+        <tr><td><code>Features</code></td><td>Vision, tools, caching ellam work. Fast mode + server-side <code>fallbacks</code> batch-la illa</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="count">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Measure first</span>
+      <h2>Token counting &amp; Models API</h2>
+    </div>
+    <div class="term"><div class="term-bar"><span>count.ts</span></div><pre>const { input_tokens } = await client.messages.countTokens({
+  model: "claude-opus-5-5",                  // model-specific; same model ID use pannunga
+  system: systemPrompt,
+  messages,
+});
+console.log(`Input cost ≈ $${(input_tokens * 4 / 1_000_000).toFixed(4)}`);  // Opus 5.5 $4/MTok
+
+// Live model info: context window, output cap, capabilities
+const model = await client.models.retrieve("claude-opus-5-5");
+console.log(model.max_input_tokens, model.max_tokens);
+for await (const m of client.models.list()) console.log(m.id);</pre></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>import { encode } from "gpt-tokenizer";
+encode(text).length</pre><p>OpenAI tokenizer. Claude tokens-ah ~15–20% (code-la innum adhigam) undercount pannum.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>client.messages.countTokens({ model, messages })</pre><p>Official endpoint, exact count.</p></div>
+    </div>
+  </section>
+
+  <section id="fast">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Speed</span>
+      <h2>Fast mode</h2>
+    </div>
+    <div class="term"><div class="term-bar"><span>fast.ts</span></div><pre>const response = await client.beta.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 4096,
+  speed: "fast",                       // top-level param
+  betas: ["fast-mode-2026-02-01"],
+  messages: [{ role: "user", content: "..." }],
+});
+console.log(response.usage.speed);</pre></div>
+    <div class="note">Research preview. Opus 5.5 / Opus 5 / Opus 4.8 mattum, Claude API-la mattum. Same model, up to 2.5x faster output, premium price (Opus 5.5: $8 / $40). Thani rate limit; 429 vandhaa standard speed-ku fallback (cache invalidate aagum). Batch-la illa.</div>
+  </section>
+
+  <section id="cloud">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Enterprise</span>
+      <h2>Bedrock, Vertex, Foundry</h2>
+      <p class="muted">Company already AWS / GCP / Azure-la irundhaa. Andha platform-oda dedicated client use pannunga, <code>baseURL</code> hack illa.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Platform</th><th>TypeScript client</th><th>Model ID</th><th>Auth</th></tr></thead>
+      <tbody>
+        <tr><td><code>Amazon Bedrock</code></td><td><code>import { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk"</code><br><code>new AnthropicBedrockMantle({ awsRegion: "us-east-1" })</code></td><td><code>anthropic.claude-opus-5-5</code></td><td>AWS credentials</td></tr>
+        <tr><td><code>Google Vertex AI</code></td><td><code>import { AnthropicVertex } from "@anthropic-ai/vertex-sdk"</code><br><code>new AnthropicVertex({ projectId, region: "global" })</code></td><td><code>claude-opus-5-5</code> (no prefix)</td><td>GCP ADC</td></tr>
+        <tr><td><code>Microsoft Foundry</code></td><td><code>import AnthropicFoundry from "@anthropic-ai/foundry-sdk"</code></td><td>Foundry deployment</td><td>Foundry key / Entra</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Construct pannappuram same <code>messages.create</code> / <code>.stream</code>. Aana <b>features ellam ellaa platform-layum illa</b> (e.g. Files API Bedrock/Vertex-la illa, fast mode Claude API mattum). Bedrock/Vertex pricing thani.</div>
+  </section>
+
+  <section id="costtask">
+    <div class="sec-head">
+      <span class="eyebrow">Step 10 · Think like a lead</span>
+      <h2>Cost per completed task</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Order</th><th>Lever</th><th>Type</th></tr></thead>
+      <tbody>
+        <tr><td><code>1</code></td><td>Prompt caching</td><td>Free win</td></tr>
+        <tr><td><code>2</code></td><td>Input hygiene: thevai illaadha context, pazhaiya tool outputs remove</td><td>Free win</td></tr>
+        <tr><td><code>3</code></td><td>Batch API (urgent illaadhadhu)</td><td>Free win (latency trade)</td></tr>
+        <tr><td><code>4</code></td><td>Effort tune per route</td><td>Tradeoff, eval vachu</td></tr>
+        <tr><td><code>5</code></td><td>Cheaper model / multi-model routing</td><td>Tradeoff, kadaisi</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Per <i>request</i> cost illa, per <b>completed task</b> cost paarunga. Cheap request 3 retries eduthaa adhu cheap illa. Multi-model cascade-la ovvoru model-kkum thani cache; adhanaala oru model + lower effort first measure pannunga.</div>
+  </section>
+
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 11 · Your turn</span>
+      <h2>Practice: measure, then optimize</h2>
+      <p class="muted">Lesson 4-oda <code>claude-api-lab/</code>-la. Ovvoru step-layum <code>usage</code> print panni note pannunga.</p>
+      <span class="counter" id="count">0 / 9 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span>Oru 2–3 page text (e.g. todo-api README) <code>doc.txt</code>-aa vechu, <code>countTokens</code> run pannunga</span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span>Same question-ah <code>claude-haiku-5-5</code>, <code>claude-sonnet-5-5</code>, <code>claude-opus-5-5</code>-la kelunga. Answer + <code>usage</code> + time compare</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span>Ovvoru result-kkum cost calculate pannunga (table prices vachu)</span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span>Opus 5.5-la effort <code>low</code> vs <code>high</code>: output tokens evvalavu maarudhu?</span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span><code>display: "summarized"</code> vechu thinking summary print pannunga</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span><code>doc.txt</code>-ah system-la vechu <code>cache_control</code> add. 2 thadava run: 1st <code>cache_creation</code>, 2nd <code>cache_read</code> &gt; 0 aa?</span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span>System prompt mudhal-la <code>new Date()</code> serthu thirumba run. Cache read enna aachu? Yen?</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span>5 small requests-oda oru batch create, <code>custom_id</code> vachu results match</span></label></li>
+      <li><input type="checkbox" id="s9"><label for="s9"><span class="n"></span><span>Findings-ah <code>COST_NOTES.md</code>-la ezhudhi commit (interview-la real numbers solla)</span></label></li>
+    </ol>
+  </section>
+
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 12 · Check</span>
+      <h2>Quick quiz (exam style)</h2>
+    </div>
+    <div class="stack">
+      <details><summary>1. Chatbot-la 20K-token policy doc ovvoru request-layum anuppureenga. Cost kammi panna first step?</summary><p><b>Prompt caching</b>: doc-ah frozen system block-la vechu <code>cache_control</code>. Reads romba cheap.</p></details>
+      <details><summary>2. Caching on panniyum <code>cache_read_input_tokens</code> eppovum 0. Possible causes?</summary><p>Prefix-la dynamic content (timestamp, UUID), tools / model maarudhu, unsorted JSON, prefix minimum-ku kammi, illa vera workspace.</p></details>
+      <details><summary>3. Opus 5.5-la <code>budget_tokens: 8000</code> anuppunaa?</summary><p><b>400 error.</b> <code>thinking: {type: "adaptive"}</code> + <code>output_config.effort</code> use pannunga.</p></details>
+      <details><summary>4. 50,000 product descriptions overnight summarize pannanum. Best approach?</summary><p><b>Batch API</b> (50% cheaper, 24h-kulla), cheap model (Haiku) + eval vachu quality check, results-ah <code>custom_id</code> vachu map.</p></details>
+      <details><summary>5. Prompt tokens estimate panna <code>tiktoken</code> use pannalaamaa?</summary><p>Illa. Adhu OpenAI tokenizer, Claude-ku undercount. <code>messages.countTokens</code> use pannunga.</p></details>
+      <details><summary>6. Company full-aa AWS-la. Claude eppadi access?</summary><p><b>Amazon Bedrock</b>: <code>AnthropicBedrockMantle</code> client, model ID <code>anthropic.</code> prefix-oda. Feature availability platform-wise check pannunga.</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"Naan cost-ah per completed task-aa measure pannuven. Mudhalla free wins: prompt caching (frozen prefix, cache_read verify), input hygiene, batch. Apram eval vachu effort tune, kadaisila dhaan cheaper model. Thinking-ku adaptive + effort; budget_tokens pudhu models-la removed."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson05-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){ b.closest("li").classList.toggle("done", b.checked); if (b.checked) done++; });
+    count.textContent = done + " / " + boxes.length + " done";
+  }
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>

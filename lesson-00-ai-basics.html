@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Basics</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look — one concept per section, plain-language tables + a live token estimator */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<style>
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--mono);font-size:.85rem}
+.flow .box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.flow .box.hi{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.flow .arr{color:var(--muted)}
+.toks{display:flex;flex-wrap:wrap;gap:4px;font-family:var(--mono);font-size:.9rem}
+.toks span{padding:2px 6px;border-radius:5px;background:var(--accent-soft);border:1px solid var(--line)}
+.toks span:nth-child(even){background:var(--warn-soft)}
+.est{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.est textarea{width:100%;min-height:90px;font:inherit;font-family:var(--mono);font-size:.9rem;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);resize:vertical}
+.est .out{display:flex;flex-wrap:wrap;gap:16px;font-variant-numeric:tabular-nums}
+.est .out b{font-family:var(--display);font-size:1.3rem}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Lesson 0 · Start here · Zero knowledge OK</span>
+    <h1>AI Basics</h1>
+    <p class="lede">Model na enna? Token na enna? Agent na enna? Ellaa lessons-kkum munnadi indha words puriyanum. Ovvonnum oru line meaning, oru daily-life example, oru real example.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#picture">Big picture</a></li>
+      <li><a href="#model">Model</a></li>
+      <li><a href="#token">Token</a></li>
+      <li><a href="#context">Context window</a></li>
+      <li><a href="#prompt">Prompt</a></li>
+      <li><a href="#generate">How it answers</a></li>
+      <li><a href="#limits">Limits</a></li>
+      <li><a href="#family">Model family</a></li>
+      <li><a href="#api">API &amp; SDK</a></li>
+      <li><a href="#tool">Tool</a></li>
+      <li><a href="#agent">Agent</a></li>
+      <li><a href="#more">More words</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <!-- PICTURE -->
+  <section id="picture">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Full picture first</span>
+      <h2>Ellaam eppadi connect aagudhu?</h2>
+    </div>
+    <div class="flow" aria-label="Flow: you, app, API, model, tools">
+      <span class="box">Neenga</span><span class="arr">→</span>
+      <span class="box">App (Claude Code / unga code)</span><span class="arr">→</span>
+      <span class="box">API</span><span class="arr">→</span>
+      <span class="box hi">Model (Claude)</span><span class="arr">⇄</span>
+      <span class="box">Tools (files, web, DB)</span>
+    </div>
+    <div class="why stack">
+      <p><strong>Oru line-la:</strong> Neenga <b>prompt</b> anuppureenga. Adhu <b>tokens</b>-aa udaiyum. <b>Model</b> adhai padichu adutha tokens predict panni answer ezhudhum. Model-ku <b>tools</b> kudutha, adhu "indha file-ah padi" nu kekkum; unga app adhai run panni result thirumba anuppum. Indha loop thaane odinaa adhu <b>agent</b>.</p>
+    </div>
+    <p class="muted">Keezha ovvoru word-um thani-thaniyaa paakalaam.</p>
+  </section>
+
+  <!-- MODEL -->
+  <section id="model">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Model</span>
+      <h2>Model na enna?</h2>
+    </div>
+    <div class="tbl"><table>
+      <tbody>
+        <tr><td><code>Meaning</code></td><td>Neraiya text padichu, "adutha word enna varum" nu predict panna kathukitta oru periya program. Ulla irukkuradhu billions of numbers (<b>parameters</b> / weights).</td></tr>
+        <tr><td><code>Daily life</code></td><td>Phone keyboard-la "Good" type pannina "morning" suggest pannudhulla? Adhe idea, aana 1000 madangu periyadhu. Full essay, code, plan ellaam ezhudhum.</td></tr>
+        <tr><td><code>Real example</code></td><td>Claude Opus 5.5, Claude Sonnet 5.5, Claude Haiku 5.5: ellaam <b>models</b>. GPT, Gemini: vera company models.</td></tr>
+        <tr><td><code>LLM</code></td><td><b>L</b>arge <b>L</b>anguage <b>M</b>odel. Text-la train pannina periya model. Claude oru LLM.</td></tr>
+        <tr><td><code>Training</code></td><td>Model kathukkura stage (Anthropic pannum, maasa kanakkula). Neenga panna maateenga.</td></tr>
+        <tr><td><code>Inference</code></td><td>Kathukitta model-ah use panni answer vaangradhu. Neenga Claude kitta kekkum ovvoru thadavaiyum inference.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Thappaana idea</span><pre>Model-kulla Google maadhiri database irukku,
+adhula search panni answer tharudhu</pre></div>
+      <div class="good"><span class="tag">Correct</span><pre>Model patterns kathukittirukku.
+Ovvoru word-aiyum predict panni ezhudhudhu.
+Adhanaala dhaan sila neram confident-aa
+thappu sollum (hallucination).</pre></div>
+    </div>
+  </section>
+
+  <!-- TOKEN -->
+  <section id="token">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Token</span>
+      <h2>Token na enna?</h2>
+      <p class="muted">Model words-ah padikkaadhu. Text-ah chinna chinna <b>pieces</b>-aa udaichu padikkum. Andha oru piece = oru <b>token</b>.</p>
+    </div>
+    <div class="tbl"><table>
+      <tbody>
+        <tr><td><code>Meaning</code></td><td>Text-oda chinna unit. Sila neram full word, sila neram word-oda paadhi, space, punctuation.</td></tr>
+        <tr><td><code>Daily life</code></td><td>Auto meter kilometer-ku charge pannura maadhiri, AI <b>token</b>-ku charge pannum. Neraiya tokens = neraiya cost.</td></tr>
+        <tr><td><code>Rough rule</code></td><td>English-la sumaar 3–4 characters = 1 token. Tamil, code, rare words-ku adhigam tokens aagum.</td></tr>
+        <tr><td><code>Input tokens</code></td><td>Neenga anuppura text (prompt, files, history)</td></tr>
+        <tr><td><code>Output tokens</code></td><td>Model ezhudhura answer. Idhu input-ah vida <b>5 madangu</b> costly (Opus 5.5: input $4, output $20 per 1M tokens)</td></tr>
+      </tbody>
+    </table></div>
+    <p>Example (approximate split, real split model-ku model maarum):</p>
+    <div class="toks" aria-label="Example token split"><span>Claude</span><span> is</span><span> help</span><span>ful</span><span>!</span><span> todo</span><span>-</span><span>api</span></div>
+
+    <div class="est">
+      <label for="tokIn"><b>Try pannunga:</b> edhavadhu type pannunga, tokens + cost rough-aa kaattum</label>
+      <textarea id="tokIn">Create a GET /todos endpoint in Express with a vitest test.</textarea>
+      <div class="out">
+        <span>Characters <b id="tokChars">0</b></span>
+        <span>≈ Tokens <b id="tokCount">0</b></span>
+        <span>Input cost on Opus 5.5 ≈ <b id="tokCost">$0</b></span>
+      </div>
+      <p class="muted">Idhu rough estimate (characters ÷ 4) mattum. Exact count-ku API-la <code>count_tokens</code> irukku (Lesson 5).</p>
+    </div>
+  </section>
+
+  <!-- CONTEXT -->
+  <section id="context">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Context window</span>
+      <h2>Context window na enna?</h2>
+    </div>
+    <div class="tbl"><table>
+      <tbody>
+        <tr><td><code>Meaning</code></td><td>Model <b>orey nerathula</b> paakka mudiyura maximum tokens. Unga prompt + pazhaiya chat + files + answer ellaam idhukulla adanganum.</td></tr>
+        <tr><td><code>Daily life</code></td><td>Exam-la oru A4 sheet cheat sheet allowed nu vachukkonga. Sheet full aana, pudhusaa ezhudha pazhasa azhikkanum. Context window = andha sheet.</td></tr>
+        <tr><td><code>Real numbers</code></td><td>Current Claude models: <b>1M tokens</b> (sumaar 2,500 pages). Haiku 4.5: 200K.</td></tr>
+        <tr><td><code>Important</code></td><td>Model-ku <b>memory illa</b>. Ovvoru request-um pudhusu. Chat "nyaabagam vachukkudhu" maadhiri theriyudhu, yenna app full history-ah thirumba anuppudhu.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>Ore chat-la 5 different tasks,
+3 maNi neram continue</pre><p>Context full aagi, pazhaiya unrelated vishayam kuzhappum. Quality kuraiyum.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>Oru task = oru chat.
+Mudinjadhum /clear</pre><p>Clean context = better answer, kammi cost.</p></div>
+    </div>
+  </section>
+
+  <!-- PROMPT -->
+  <section id="prompt">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Prompt</span>
+      <h2>Prompt, system prompt, messages</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Word</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>Prompt</code></td><td>Model-kitta neenga kudukkura instruction / question</td><td>"Indha function-la bug kandupidi"</td></tr>
+        <tr><td><code>System prompt</code></td><td>Background rules. Ovvoru message-kkum munnadi silent-aa pogum. App developer set pannuvaar</td><td>"You are a strict code reviewer. Reply in Tamil."</td></tr>
+        <tr><td><code>User message</code></td><td>Neenga type pannuradhu</td><td>"Review app.js"</td></tr>
+        <tr><td><code>Assistant message</code></td><td>Model-oda reply</td><td>"Line 12-la null check illa..."</td></tr>
+        <tr><td><code>CLAUDE.md</code></td><td>Claude Code-la system prompt-oda sendhu pogura project rules file</td><td>"Use vitest. Run npm test before commit."</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- GENERATE -->
+  <section id="generate">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Inside</span>
+      <h2>Model eppadi answer ezhudhudhu?</h2>
+    </div>
+    <ol class="stack" style="margin:0;padding-left:1.4em"><li>Unga text → tokens-aa udaiyum</li><li>Model ellaa tokens-aiyum paathu, <b>adutha oru token</b> edhuvaa irukkalaam nu probability calculate pannum</li><li>Oru token select pannum, adhai end-la serkkum</li><li>Thirumba step 2. Answer mudiyura varaikkum (stop) repeat. Adhanaala dhaan answer word-by-word <b>stream</b> aagudhu</li></ol>
+    <div class="tbl"><table>
+      <tbody>
+        <tr><td><code>Non-deterministic</code></td><td>Same question rendu thadava kettaa konjam vera answer varalaam. Normal dhaan.</td></tr>
+        <tr><td><code>Thinking / reasoning</code></td><td>Answer ezhudhurathukku munnadi model ulla yosikkum. Kashtamaana problem-ku better result, aana adhigam tokens + time.</td></tr>
+        <tr><td><code>Effort</code></td><td>Evvalavu yosikkanum nu neenga set pannalaam: <code>low</code> … <code>max</code>. Simple task = low (cheap, fast).</td></tr>
+        <tr><td><code>max_tokens</code></td><td>Answer evvalavu neelam max varalaam nu limit. Limit-la nikkiradhu = answer paadhi-la cut aagum.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- LIMITS -->
+  <section id="limits">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · Limits</span>
+      <h2>Model-oda limits</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Limit</th><th>Meaning</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td><code>Hallucination</code></td><td>Illaadha function, thappaana fact-ah confident-aa sollum</td><td>Tests run pannu, docs check pannu, "theriyalana sollu" nu prompt-la sollu</td></tr>
+        <tr><td><code>Knowledge cutoff</code></td><td>Train aana date-ku apram nadandhadhu theriyaadhu</td><td>Web search tool / docs kudu</td></tr>
+        <tr><td><code>No memory</code></td><td>Request-ku request marandhudum</td><td>History anuppu, CLAUDE.md, memory files</td></tr>
+        <tr><td><code>No hands</code></td><td>Model thaane file open panna, code run panna mudiyaadhu</td><td><b>Tools</b> kudu (Step 9)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- FAMILY -->
+  <section id="family">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Claude models</span>
+      <h2>Claude family: edhu edhukku?</h2>
+      <p class="muted">Restaurant menu maadhiri: periya meal (slow, costly, super taste) vs quick snack (fast, cheap).</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Model</th><th>Nature</th><th>Use</th><th>$ per 1M tokens (in / out)</th></tr></thead>
+      <tbody>
+        <tr><td><code>Fable 5.1</code></td><td>Most capable</td><td>Romba kashtamaana, long agent work</td><td>$10 / $50</td></tr>
+        <tr><td><code>Opus 5.5</code></td><td>Smart, default</td><td>Coding, agents, complex tasks</td><td>$4 / $20</td></tr>
+        <tr><td><code>Sonnet 5.5</code></td><td>Fast + capable</td><td>Everyday coding, apps</td><td>$2 / $10</td></tr>
+        <tr><td><code>Haiku 5.5</code></td><td>Fastest, cheapest</td><td>Classification, simple subagents, high volume</td><td>$0.10 / $0.50</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">Prices 2026-10 Claude API rates. Detail Lesson 5-la.</p>
+  </section>
+
+  <!-- API -->
+  <section id="api">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · API</span>
+      <h2>API, API key, SDK</h2>
+    </div>
+    <div class="tbl"><table>
+      <tbody>
+        <tr><td><code>API</code></td><td>Unga program model-oda pesura vazhi. Hotel waiter maadhiri: neenga order (request) kudukkureenga, kitchen (model) samaichu, waiter answer (response) kondu varuvaar.</td></tr>
+        <tr><td><code>API key</code></td><td>Unga password + bill account. Leak aana vera yaaro unga kaasula use pannuvaanga. <b>Git-la commit pannave koodaadhu.</b></td></tr>
+        <tr><td><code>SDK</code></td><td>API-ah easy-aa call panna ready-made library: TypeScript <code>@anthropic-ai/sdk</code>, Python <code>anthropic</code></td></tr>
+        <tr><td><code>Request / Response</code></td><td>Neenga anuppuradhu / thirumba varradhu (JSON format)</td></tr>
+        <tr><td><code>Rate limit</code></td><td>Nimishathukku evvalavu requests anuppalaam nu limit. Thaandina <code>429</code> error</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- TOOL -->
+  <section id="tool">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Tool</span>
+      <h2>Tool na enna?</h2>
+    </div>
+    <div class="tbl"><table>
+      <tbody>
+        <tr><td><code>Meaning</code></td><td>Model use panna allow pannura oru function: file padi, command run pannu, web search, DB query.</td></tr>
+        <tr><td><code>Daily life</code></td><td>Doctor (model) "blood test edunga" nu solluvaar. Lab (unga app) test panni report (tool result) kudukkum. Doctor report paathu adutha step solluvaar.</td></tr>
+        <tr><td><code>Key point</code></td><td>Model tool-ah <b>thaane run pannaadhu</b>. "Indha tool-ah indha input-oda run pannu" nu <b>kekkum</b>. Unga code run pannum. (Web search maadhiri sila <b>server tools</b> Anthropic side-laye odum.)</td></tr>
+        <tr><td><code>Also called</code></td><td>Function calling, tool use</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- AGENT -->
+  <section id="agent">
+    <div class="sec-head">
+      <span class="eyebrow">Step 10 · Agent</span>
+      <h2>Agent na enna?</h2>
+      <p class="muted"><b>Agent = Model + Tools + Loop.</b> Goal kudutha, mudiyura varaikkum thaane steps edukkum.</p>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Chatbot</span><pre>Neenga: "Bug fix pannu"
+Bot: "Indha code try pannunga..."
+(Neenga copy, paste, run, error,
+thirumba kekkuradhu...)</pre><p>Oru question → oru answer. Neenga dhaan ellaa velaiyum.</p></div>
+      <div class="good"><span class="tag">Agent</span><pre>Neenga: "Bug fix pannu, tests pass aaganum"
+Agent: file padikkum → bug kandupidikkum
+→ edit pannum → npm test run pannum
+→ fail → thirumba fix → pass ✅ → "Mudinjuchu"</pre><p>Goal → loop: yosi, tool use pannu, result paaru, repeat.</p></div>
+    </div>
+    <div class="flow" aria-label="Agent loop">
+      <span class="box">Goal</span><span class="arr">→</span>
+      <span class="box hi">Think</span><span class="arr">→</span>
+      <span class="box">Use tool</span><span class="arr">→</span>
+      <span class="box">See result</span><span class="arr">→</span>
+      <span class="box hi">Done? illana thirumba Think</span>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Word</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>Workflow</code></td><td>Steps-ah <b>neenga</b> fix pannureenga (Step 1 → 2 → 3). Predictable. Simple tasks-ku idhu podhum</td></tr>
+        <tr><td><code>Agent</code></td><td>Steps-ah <b>model</b> decide pannum. Flexible, aana cost + risk adhigam</td></tr>
+        <tr><td><code>Subagent</code></td><td>Main agent oru chinna velaiya vera agent-kitta kudukkum (thani context). Manager → team member maadhiri</td></tr>
+        <tr><td><code>Claude Code</code></td><td>Oru ready-made <b>coding agent</b>. Tools: Read, Edit, Bash, Grep...</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- MORE -->
+  <section id="more">
+    <div class="sec-head">
+      <span class="eyebrow">Step 11 · Glossary</span>
+      <h2>Innum kekka pogura words</h2>
+      <p class="muted">Ippo oru line purinjaa podhum. Detail andha lesson-la.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Word</th><th>Oru line</th><th>Lesson</th></tr></thead>
+      <tbody>
+        <tr><td><code>MCP</code></td><td>AI-ah external tools/apps (GitHub, DB) kooda connect panna standard "plug". AI-oda USB-C</td><td>3, 8</td></tr>
+        <tr><td><code>Skill</code></td><td>Theva padum podhu mattum load aagura instructions folder (e.g. "deploy eppadi")</td><td>3</td></tr>
+        <tr><td><code>Hook</code></td><td>Specific event nadakkum podhu <b>kandippa</b> odura unga script (AI decide pannaadhu)</td><td>3</td></tr>
+        <tr><td><code>Streaming</code></td><td>Answer full-aa mudiyura varaikkum wait pannaama word-by-word vaangradhu</td><td>4</td></tr>
+        <tr><td><code>Prompt caching</code></td><td>Repeat aagura periya prompt part-ah save panni, adutha thadava cheap-aa, fast-aa use pannuradhu</td><td>5</td></tr>
+        <tr><td><code>Batch API</code></td><td>Urgent illaadha 1000s of requests-ah orey-aa anuppi 50% cost save</td><td>5</td></tr>
+        <tr><td><code>Structured output</code></td><td>Answer-ah exact JSON format-la vaangradhu, code-la easy-aa use panna</td><td>6</td></tr>
+        <tr><td><code>Few-shot</code></td><td>Prompt-la 2–3 examples kuduthu "idhe maadhiri pannu" nu solradhu</td><td>6</td></tr>
+        <tr><td><code>RAG</code></td><td>Unga documents-la irundhu relevant part-ah eduthu prompt-la serthu answer vaangradhu</td><td>6</td></tr>
+        <tr><td><code>Compaction</code></td><td>Context full aagum podhu pazhaiya chat-ah summary aakki space free pannuradhu</td><td>6</td></tr>
+        <tr><td><code>Prompt injection</code></td><td>Document / website-la olichu vacha "ignore your rules" maadhiri attack instructions</td><td>10</td></tr>
+        <tr><td><code>Guardrails</code></td><td>AI thappaana / dangerous vishayam pannaama thadukkura layers</td><td>10</td></tr>
+        <tr><td><code>Eval</code></td><td>AI app-ku exam: fixed test questions vachu quality measure pannuradhu</td><td>11</td></tr>
+        <tr><td><code>Vibe coding</code></td><td>AI ezhudhuradhai paakkaame accept pannuradhu. Interview-la idhu <b>negative</b></td><td>0</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 12 · Check</span>
+      <h2>Quick quiz</h2>
+      <p class="muted">Mudhalla neengalae sollunga, apram click.</p>
+    </div>
+    <div class="stack">
+      <details><summary>1. Model-kulla database irukkaa? Yen sila neram thappu sollum?</summary><p>Illa. Model patterns vachu adutha token predict pannum. Adhanaala illaadhadhai confident-aa sollalaam (hallucination). Fix: tests, docs, verify.</p></details>
+      <details><summary>2. Token na enna? Yen namakku mukkiyam?</summary><p>Text-oda chinna piece. Cost, speed, context limit ellaam tokens-la dhaan count aagum. Output tokens input-ah vida costly.</p></details>
+      <details><summary>3. Claude "pazhaiya message nyaabagam vachukkudhu". Unmaiyaa?</summary><p>Model-ku memory illa. App ovvoru request-laiyum full history-ah context window-la thirumba anuppudhu.</p></details>
+      <details><summary>4. Chatbot vs Agent difference?</summary><p>Chatbot: oru question → oru answer. Agent: model + tools + loop. Goal mudiyura varaikkum thaane think → tool → result → repeat.</p></details>
+      <details><summary>5. 10,000 emails-ah "spam / not spam" nu classify pannanum. Endha model?</summary><p>Haiku (cheap, fast, simple task). Urgent illana Batch API vachu innum 50% save.</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"An LLM predicts the next token. Context window is its working memory, and it has no memory between requests. Give it tools and run it in a loop, and that's an agent. Claude Code is a coding agent like that."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var input = document.getElementById("tokIn");
+  var chars = document.getElementById("tokChars");
+  var count = document.getElementById("tokCount");
+  var cost = document.getElementById("tokCost");
+  var OPUS_INPUT_PER_TOKEN = 4 / 1000000;
+
+  function update(){
+    var n = input.value.length;
+    var t = Math.ceil(n / 4);
+    chars.textContent = n.toLocaleString();
+    count.textContent = t.toLocaleString();
+    cost.textContent = "$" + (t * OPUS_INPUT_PER_TOKEN).toFixed(6);
+  }
+  input.addEventListener("input", update);
+  update();
+})();
+</script>
+
+<script src="nav.js"></script>

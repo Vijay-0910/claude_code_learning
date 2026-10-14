@@ -1,0 +1,179 @@
+<title>Learn Claude Code Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: hub — left lesson sidebar (nav.js) + cards linking every lesson page */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<style>
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px}
+.card{display:flex;flex-direction:column;gap:8px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;color:var(--fg);text-decoration:none}
+.card:hover{border-color:var(--accent)}
+.card h3{color:var(--fg)}
+.card .go{margin-top:auto;font-family:var(--mono);font-size:.8rem;color:var(--accent);font-weight:600}
+.next{background:var(--accent-soft);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Learn Claude Code · Tanglish</span>
+    <h1>Learning Hub</h1>
+    <p class="lede">Ellaa lessons-um ore idathula. Left menu-la (phone-la keezha "☰ Menu") endha page or section click pannaalum direct-ah anga pogum.</p>
+  </header>
+
+  <section id="next">
+    <div class="next">
+      <span class="eyebrow">Ippo panna vendiyadhu</span>
+      <p><b>Mudhalla Lesson 0: AI Basics.</b> Model, token, context window, tool, agent na enna nu simple examples-oda. Idhu puriyaama mathha lessons padikkaadheenga.</p>
+      <p><a href="lesson-00-ai-basics.html">Lesson 0 start pannu →</a></p>
+      <p><b>Apram Practice Lab:</b> 57 hands-on tasks, Setup-la irundhu Capstone varaikkum. Oru lesson padi → adhoda phase tasks pannu.</p>
+      <p><a href="practice-lab.html#setup">Practice Lab Setup-la start pannu →</a></p>
+    </div>
+  </section>
+
+  <section id="overview">
+    <div class="sec-head"><span class="eyebrow">Overview</span><h2>Full roadmap</h2></div>
+    <div class="cards">
+      <a class="card" href="ai-coding-path.html"><span class="eyebrow">Big picture</span><h3>AI Coding Master Path</h3><p class="muted">8 fundamentals, Level 0–6, interview Q&amp;A, cheat sheet, flashcards. Ella tools-kkum common.</p><span class="go">Open →</span></a>
+    </div>
+  </section>
+
+  <section id="lessons">
+    <div class="sec-head"><span class="eyebrow">Claude Code</span><h2>Lessons</h2></div>
+    <div class="cards">
+      <a class="card" href="lesson-01-terminal.html"><span class="eyebrow">Lesson 1 · reference</span><h3>Terminal Basics</h3><p class="muted"><code>pwd</code>, <code>ls</code>, <code>cd</code>, <code>mkdir</code>, <code>cat</code>: ellaa options-um, practice, quiz.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-02-claude-code-basics.html"><span class="eyebrow">Lesson 2 · Level 1</span><h3>Claude Code Basics</h3><p class="muted">Start, <code>@</code> <code>!</code> <code>/</code>, permission modes, slash commands, keys, CLI flags, prompt formula.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-03-claude-code-advanced.html"><span class="eyebrow">Lesson 3 · Level 4</span><h3>Claude Code Advanced</h3><p class="muted">CLAUDE.md, settings, Skills, Subagents, Hooks, MCP, Plugins, headless, Agent SDK.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-13-claude-code-extras.html"><span class="eyebrow">Lesson 13 · Claude Code</span><h3>Claude Code Extras</h3><p class="muted">GitHub Actions, IDE, status line, background &amp; cloud sessions, worktrees, review commands, auto mode, sandbox.</p><span class="go">Open →</span></a>
+    </div>
+  </section>
+
+  <section id="api">
+    <div class="sec-head"><span class="eyebrow">Claude API · TypeScript</span><h2>CCDV-F core lessons</h2><p class="muted">Exam-oda 90%+ weight inga dhaan.</p></div>
+    <div class="cards">
+      <a class="card" href="lesson-04-claude-api-101.html"><span class="eyebrow">Lesson 4 · Applications 33%</span><h3>Claude API 101</h3><p class="muted">API key safety, first <code>messages.create</code>, response &amp; <code>stop_reason</code>, multi-turn, streaming, images/PDF, Files API, citations, errors.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-05-models-cost.html"><span class="eyebrow">Lesson 5 · Models 17%</span><h3>Models &amp; Cost</h3><p class="muted">Model IDs &amp; prices, Haiku/Sonnet/Opus/Fable choice, adaptive thinking &amp; effort, prompt caching, Batch API, token counting, cloud platforms.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-06-prompt-context.html"><span class="eyebrow">Lesson 6 · Prompt &amp; Context 11%</span><h3>Prompt &amp; Context Engineering</h3><p class="muted">Clear prompts, XML tags, few-shot, structured outputs, validation, context budget, editing &amp; compaction.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-07-tool-use.html"><span class="eyebrow">Lesson 7 · Tools 11%</span><h3>Tool Use</h3><p class="muted">Tool definitions, manual agentic loop, parallel results, <code>strict</code>, Tool Runner, server tools, approval gates.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-08-mcp-server.html"><span class="eyebrow">Lesson 8 · Tools / MCP</span><h3>Build an MCP Server</h3><p class="muted">Todo MCP server in TypeScript (tools, resources, prompts, stdio), Inspector, Claude Code connect, API connector.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-09-agents.html"><span class="eyebrow">Lesson 9 · Agents 15%</span><h3>Agents &amp; Workflows</h3><p class="muted">Workflow vs agent, 5 patterns, 4 build approaches (manual loop, Tool Runner, Managed Agents, Agent SDK), subagents, memory.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-10-security.html"><span class="eyebrow">Lesson 10 · Security 8%</span><h3>Security &amp; Safety</h3><p class="muted">Prompt injection, untrusted input, PII, guardrail layers, least privilege, secrets, refusal handling.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-11-evals-debugging.html"><span class="eyebrow">Lesson 11 · Eval 2.6%</span><h3>Evals &amp; Debugging</h3><p class="muted">Eval sets, graders, regression, API error codes, typed error handling, <code>stop_reason</code>, isolating bugs.</p><span class="go">Open →</span></a>
+      <a class="card" href="lesson-12-claude-ecosystem.html"><span class="eyebrow">Lesson 12 · App design</span><h3>Claude Ecosystem</h3><p class="muted">claude.ai, Desktop, Chrome, Claude Code, Developer Platform, AWS/Bedrock/Vertex/Foundry: edhu edhukku.</p><span class="go">Open →</span></a>
+    </div>
+  </section>
+
+  <section id="exam">
+    <div class="sec-head"><span class="eyebrow">Final</span><h2>Capstone &amp; mock exam</h2></div>
+    <div class="cards">
+      <a class="card" href="lesson-14-capstone-mock-exam.html"><span class="eyebrow">Lesson 14 · All domains</span><h3>Capstone &amp; Mock Exam</h3><p class="muted">Todo Assistant capstone (9 milestones) + 30-question interactive practice exam with score.</p><span class="go">Open →</span></a>
+    </div>
+  </section>
+
+  <section id="cert">
+    <div class="sec-head"><span class="eyebrow">Certification</span><h2>CCDV-F</h2></div>
+    <div class="cards">
+      <a class="card" href="ccdvf-roadmap.html"><span class="eyebrow">Exam plan</span><h3>CCDV-F Roadmap</h3><p class="muted">Exam facts, 8 domains with weights, study order. Claude Code = 3.1%, Claude API dhaan core.</p><span class="go">Open →</span></a>
+    </div>
+  </section>
+</div>
+<script src="nav.js"></script>

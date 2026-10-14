@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude Code Basics</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as lesson-01 — one reading column, each topic a "page" with an options table */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Level 1 · Claude Code Basics · v2.1.299</span>
+    <h1>Claude Code Basics</h1>
+    <p class="lede">Start pannuradhu, permission modes, <code>@</code> / <code>!</code> / <code>/</code> shortcuts, mukkiyamaana slash commands, CLI flags. Kadaisila <code>todo-api</code>-la first real task-ah neengalae pannuveenga.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#why">Why</a></li>
+      <li><a href="#start">Start</a></li>
+      <li><a href="#input">@ ! /</a></li>
+      <li><a href="#modes">Modes</a></li>
+      <li><a href="#slash">Slash cmds</a></li>
+      <li><a href="#keys">Keys</a></li>
+      <li><a href="#flags">CLI flags</a></li>
+      <li><a href="#prompt">Prompts</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <!-- WHY -->
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Why</span>
+      <h2>Claude Code na enna? ChatGPT-la code kekkuradhukkum idhukkum enna difference?</h2>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Chat (copy-paste)</span><pre>Neenga code copy panni chat-la podureenga
+AI answer tharudhu
+Neenga copy panni file-la paste
+Run panni error vandha thirumba copy...</pre><p>AI-ku unga project theriyaadhu. Neenga dhaan "hands".</p></div>
+      <div class="good"><span class="tag">Agent (Claude Code)</span><pre>Claude unga files-ah padikkum
+Plan pannum → files edit pannum
+Tests run pannum → fail aana fix pannum
+Neenga review + approve pannureenga</pre><p>AI-ku tools irukku: Read, Edit, Bash. Neenga dhaan "reviewer".</p></div>
+    </div>
+    <div class="why stack">
+      <p><strong>Agentic loop:</strong> Gather context → Take action → Verify result → repeat. Idhu dhaan Claude Code, Codex, Cursor agent, Gemini CLI ellathukkum common core.</p>
+    </div>
+  </section>
+
+  <!-- START -->
+  <section id="start">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Start</span>
+      <h2>Session start pannuradhu</h2>
+      <p class="muted">Eppovum <b>project folder-kulla</b> poyi dhaan start pannanum. Claude andha folder-ah dhaan "project" nu edukkum.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>claude</code></td><td>Interactive session start</td></tr>
+        <tr><td><code>claude "explain this project"</code></td><td>First prompt-oda start</td></tr>
+        <tr><td><code>claude -c</code></td><td><b>Continue</b>: indha folder-la kadaisi conversation-ah thodarum</td></tr>
+        <tr><td><code>claude -r</code></td><td><b>Resume</b>: pazhaiya sessions list-la irundhu select pannalaam</td></tr>
+        <tr><td><code>claude -n "todo-feature"</code></td><td>Session-ku <b>name</b> kudukkum (resume panna easy)</td></tr>
+        <tr><td><code>claude -p "query"</code></td><td><b>Print</b> mode: answer print panni exit. Scripts/CI-ku (Level 4)</td></tr>
+        <tr><td><code>claude --version</code></td><td>Version check</td></tr>
+        <tr><td><code>claude doctor</code></td><td>Install/health check. Edhavadhu work aagalana mudhalla idhu</td></tr>
+        <tr><td><code>claude update</code></td><td>Latest version-ku update</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>cd ~
+claude</pre><p>Home folder-la start. Claude-ku endha project nu theriyaadhu, unga ella files-um scope-la varum.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>cd ~/Desktop/Learn_Claude_Code/todo-api
+git status
+claude</pre><p>Project folder + git ready. Thappu aana thirumba poga mudiyum.</p></div>
+    </div>
+  </section>
+
+  <!-- INPUT PREFIXES -->
+  <section id="input">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Input</span>
+      <h2>Moonu magic prefixes: <code>@</code> <code>!</code> <code>/</code></h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Prefix</th><th>Enna pannum</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>@</code></td><td>File/folder-ah point pannum. Claude search panna vendaam, direct-ah context-la varum</td><td><code>@src/app.js idha explain pannu</code></td></tr>
+        <tr><td><code>!</code></td><td>Bash mode: command neengalae run pannureenga, output Claude-kkum theriyum</td><td><code>! npm test</code></td></tr>
+        <tr><td><code>/</code></td><td>Slash commands &amp; skills. <code>/</code> type pannina full list varum</td><td><code>/help</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Vague</span><pre>login bug-ah fix pannu</pre><p>Claude pala files search pannum, time + tokens waste, thappaana file-ah edit pannalaam.</p></div>
+      <div class="good"><span class="tag">Specific</span><pre>@src/auth/login.js line 40-la
+empty password-ku 500 varudhu.
+400 return pannanum. Test-um add pannu.</pre><p>Location + problem + expected result. Direct hit.</p></div>
+    </div>
+  </section>
+
+  <!-- MODES -->
+  <section id="modes">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Safety</span>
+      <h2>Permission modes: <kbd>Shift</kbd>+<kbd>Tab</kbd></h2>
+      <p class="muted">Claude ovvoru action-kkum unga permission kekkanumaa illaiyaa nu decide pannuradhu. <kbd>Shift</kbd>+<kbd>Tab</kbd> adikka adikka mode maarum; screen keezha current mode theriyum.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Mode</th><th>Enna nadakkum</th><th>Eppo use pannanum</th></tr></thead>
+      <tbody>
+        <tr><td><code>default</code></td><td>Ovvoru edit / command-kkum permission kekkum</td><td>Puthu project, kathukkura time. <b>Ippo neenga idhula irunga</b></td></tr>
+        <tr><td><code>acceptEdits</code></td><td>File edits auto-accept; commands-ku innum kekkum</td><td>Plan approve pannittinga, edits trust pannureenga</td></tr>
+        <tr><td><code>plan</code></td><td>Read mattum. Edhuvum maathaadhu, plan mattum tharum</td><td>Puthu feature / periya change-ku munnadi. <b>Best habit</b></td></tr>
+        <tr><td><code>auto</code></td><td>Safety classifier safe actions-ah auto approve pannum, risky-ah block</td><td>Experienced aanappuram, trusted project-la</td></tr>
+        <tr><td><code>bypassPermissions</code></td><td>Edhuvum kekkaadhu (<code>--dangerously-skip-permissions</code>)</td><td>Internet illaadha sandbox/container mattum. Real machine-la <b>vendaam</b></td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Permission prompt vandha options: <b>Yes</b> (indha thadava), <b>Yes, don't ask again</b> (indha type-ku always), <b>No</b> + enna vera maadhiri pannanum nu sollunga. "No" sollitu reason sonna Claude adhukku yetha maadhiri maathikkum.</div>
+  </section>
+
+  <!-- SLASH -->
+  <section id="slash">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Commands</span>
+      <h2>Mukkiyamaana slash commands</h2>
+      <p class="muted">Ellam memorize panna vendaam. Bold-ah irukkura 5 mattum mudhalla.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>/help</code></td><td><b>Ella commands + shortcuts list</b></td></tr>
+        <tr><td><code>/init</code></td><td><b>Project scan panni <code>CLAUDE.md</code> create pannum</b> (project rules file, Level 2)</td></tr>
+        <tr><td><code>/clear</code></td><td><b>Conversation reset.</b> Puthu task start pannum podhu. Pazhaiya context kuzhappaadhu</td></tr>
+        <tr><td><code>/compact</code></td><td><b>Long chat-ah summary aakki</b> context space free pannum</td></tr>
+        <tr><td><code>/context</code></td><td><b>Context window evvalavu use aagirukku</b> nu kaattum</td></tr>
+        <tr><td><code>/rewind</code></td><td>Mundhi irundha point-ku code + conversation-ah thirumba kondu pogum</td></tr>
+        <tr><td><code>/resume</code></td><td>Session-kulla irundhae pazhaiya session open</td></tr>
+        <tr><td><code>/model</code></td><td>Model maathuradhu (Opus / Sonnet / Haiku)</td></tr>
+        <tr><td><code>/memory</code></td><td><code>CLAUDE.md</code> memory files edit</td></tr>
+        <tr><td><code>/permissions</code></td><td>Always-allow / deny rules paakka, maatha</td></tr>
+        <tr><td><code>/config</code></td><td>Settings (theme, default mode...)</td></tr>
+        <tr><td><code>/exit</code></td><td>Session close</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- KEYS -->
+  <section id="keys">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Keyboard</span>
+      <h2>Keyboard shortcuts</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Key</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>Esc</kbd></td><td>Claude-ah <b>nadula stop</b> pannum (thappaana direction-la pogudhu nu therinjaa udane)</td></tr>
+        <tr><td><kbd>Esc</kbd> <kbd>Esc</kbd></td><td>Rewind menu: pazhaiya message-ku thirumba poyi edit pannalaam</td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Permission mode maathum</td></tr>
+        <tr><td><kbd>↑</kbd></td><td>Munnadi type panna prompt</td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>Enter</kbd> or <code>\</code>+<kbd>Enter</kbd></td><td>Puthu line (send pannaama)</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Input clear; rendu thadava = exit</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- FLAGS -->
+  <section id="flags">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · CLI flags</span>
+      <h2>Start pannum podhe options kudukkuradhu</h2>
+      <p class="muted">Full list: <code>claude --help</code>. Idhu ellam ippo theriyanum nu illa; interview-la "theriyum" nu solla podhum.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Flag</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>--permission-mode plan</code></td><td>Plan mode-laye start</td></tr>
+        <tr><td><code>--model &lt;name&gt;</code></td><td>Indha session-ku model select</td></tr>
+        <tr><td><code>--effort &lt;level&gt;</code></td><td>Evvalavu yosikkanum (reasoning effort)</td></tr>
+        <tr><td><code>--add-dir ../shared</code></td><td>Vera folder-kkum access kudukkum</td></tr>
+        <tr><td><code>--allowedTools "Bash(npm test)"</code></td><td>Indha tool-ku permission kekka vendaam</td></tr>
+        <tr><td><code>--disallowedTools "Bash(rm *)"</code></td><td>Indha tool-ah block</td></tr>
+        <tr><td><code>-w, --worktree</code></td><td>Thani git worktree-la work (Level 4)</td></tr>
+        <tr><td><code>--max-budget-usd 2</code></td><td>Spending limit (print mode)</td></tr>
+        <tr><td><code>--output-format json</code></td><td><code>-p</code>-oda JSON output (scripts-ku)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- PROMPT -->
+  <section id="prompt">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Prompting</span>
+      <h2>Nalla prompt: Goal + Location + Constraints + Done</h2>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>todo app pannu</pre><p>Endha language? Endha framework? Test venumaa? Claude guess pannum, neenga ethirpaakkaadha result varum.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>Goal: GET /todos endpoint, in-memory array return pannanum.
+Location: src/app.js, tests/todos.test.js
+Constraints: Express + vitest mattum. Database vendaam.
+Done: npm test pass aaganum.</pre><p>Claude-ku eppo "mudinjuchu" nu theriyum, adhuve verify-um pannum.</p></div>
+    </div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Your turn</span>
+      <h2>Practice: <code>todo-api</code>-la first task</h2>
+      <p class="muted">Ovvoru step-um neengalae type pannunga. Claude enna pannudhu nu <b>padichittu</b> dhaan approve pannunga.</p>
+      <span class="counter" id="count">0 / 12 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span><code>mkdir -p ~/Desktop/Learn_Claude_Code/todo-api &amp;&amp; cd ~/Desktop/Learn_Claude_Code/todo-api</code></span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span><code>git init</code>: safety net. Claude thappu pannaa thirumba vara</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span><code>claude</code>: session start. Keezha mode <code>default</code>-la irukkaa nu paarunga</span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span><code>/help</code> type panni commands list paarunga, <kbd>Esc</kbd> to close</span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span><kbd>Shift</kbd>+<kbd>Tab</kbd> adichu <b>plan mode</b>-ku maathunga</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span>Step 7-la irukkura "Right" prompt-ah type pannunga. Plan mattum varum, edhuvum maaradhu</span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span>Plan padinga. Pidikkala na "No" sollitu enna maathanum nu sollunga</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span>Plan OK aana approve pannunga. Ovvoru edit / <code>npm install</code> permission-um padichittu Yes</span></label></li>
+      <li><input type="checkbox" id="s9"><label for="s9"><span class="n"></span><span><code>! npm test</code>: neengalae tests run panni pass aagudhaa nu verify</span></label></li>
+      <li><input type="checkbox" id="s10"><label for="s10"><span class="n"></span><span><code>@src/app.js</code> indha file-la ovvoru line-um enna pannudhu nu explain pannu</span></label></li>
+      <li><input type="checkbox" id="s11"><label for="s11"><span class="n"></span><span><code>! git status</code> apram <code>! git diff --stat</code>: Claude endha files maathuchu?</span></label></li>
+      <li><input type="checkbox" id="s12"><label for="s12"><span class="n"></span><span><code>! git add -A &amp;&amp; git commit -m "feat: GET /todos with test"</code>, apram <code>/clear</code></span></label></li>
+    </ol>
+    <div class="note">Node.js illana Step 8-la fail aagum. Mudhalla terminal-la <code>node -v</code> check pannunga. Mudinjadhum <code>npm test</code> output-ah Claude chat-la paste pannunga.</div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Check</span>
+      <h2>Quick quiz</h2>
+      <p class="muted">Mudhalla neengalae yosichu sollunga, apram click.</p>
+    </div>
+    <div class="stack">
+      <details><summary>1. Puthu feature start pannum podhu endha mode best? Yen?</summary><p><b>Plan mode.</b> Claude read mattum pannum, plan tharum. Neenga approve pannra varaikkum edhuvum maaradhu. Thappaana direction-ah code ezhudhurathukku munnadiye pidikkalaam.</p></details>
+      <details><summary>2. Oru task mudinjudhu, adutha unrelated task start pannanum. Enna pannuveenga?</summary><p><code>/clear</code>. Pazhaiya context puthu task-ah kuzhappum, tokens-um waste. Long-ah ore task-na <code>/compact</code>.</p></details>
+      <details><summary>3. Claude thappaana file-ah edit panna start pannudhu. Udane enna?</summary><p><kbd>Esc</kbd> adichu stop. Already maathiyirundha <kbd>Esc</kbd> <kbd>Esc</kbd> / <code>/rewind</code>, illana <code>git restore .</code></p></details>
+      <details><summary>4. <code>@file</code> and <code>!command</code> difference?</summary><p><code>@</code> = file-ah context-la serkkum (Claude padikka). <code>!</code> = neengalae shell command run pannureenga, output Claude-kkum theriyum.</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"Claude Code oru agentic coding tool: context gather pannum, edit pannum, tests run panni verify pannum. Naan plan mode-la start panni plan review pannuven, default permissions-la ovvoru change-um paappen, tests pass aanappuram dhaan commit pannuven."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson02-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){
+      b.closest("li").classList.toggle("done", b.checked);
+      if (b.checked) done++;
+    });
+    count.textContent = done + " / " + boxes.length + " done";
+  }
+
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>

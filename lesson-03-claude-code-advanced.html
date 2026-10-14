@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude Code Advanced</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as the lessons — one reading column, each extension a "page" with file example + table */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Level 4 · Claude Code Advanced · v2.1.299</span>
+    <h1>Claude Code Advanced</h1>
+    <p class="lede">Memory, settings, Skills, Subagents, Hooks, MCP, Plugins, headless + Agent SDK. Ovvonnum enna, eppo use pannanum, file enga irukkum, minimal example. Official docs-la verify pannadhu (code.claude.com/docs, 2026-10-14).</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#map">Which one?</a></li>
+      <li><a href="#memory">CLAUDE.md</a></li>
+      <li><a href="#settings">Settings</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#agents">Subagents</a></li>
+      <li><a href="#hooks">Hooks</a></li>
+      <li><a href="#mcp">MCP</a></li>
+      <li><a href="#plugins">Plugins</a></li>
+      <li><a href="#headless">Headless/SDK</a></li>
+      <li><a href="#more">Rewind/Worktree</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <!-- MAP -->
+  <section id="map">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Big picture</span>
+      <h2>Endha problem-ku endha tool?</h2>
+      <p class="muted">Idhu dhaan interview + exam-la most asked ("Agentic Customization": built-in vs custom tool vs Skill vs MCP choose pannuradhu).</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Tool</th><th>Oru line-la</th><th>Eppo</th><th>Context cost</th></tr></thead>
+      <tbody>
+        <tr><td><code>CLAUDE.md</code></td><td>Always-on project rules</td><td>"Ovvoru session-um idhu theriyanum": commands, conventions</td><td>Always loaded</td></tr>
+        <tr><td><code>Skill</code></td><td>On-demand know-how / workflow</td><td>"Sila neram mattum venum": deploy steps, review checklist, PDF handling</td><td>Description mattum; body invoke pannum podhu</td></tr>
+        <tr><td><code>Subagent</code></td><td>Thani context-la worker</td><td>Periya search / review; main chat-ah azhukkaakka koodaadhu</td><td>Summary mattum thirumba varum</td></tr>
+        <tr><td><code>Hook</code></td><td>Guaranteed automation (code, AI illa)</td><td>"<b>Eppovum</b> nadakkanum": format after edit, block <code>rm -rf</code></td><td>Zero (Claude decide pannaadhu)</td></tr>
+        <tr><td><code>MCP</code></td><td>External system connect</td><td>GitHub, DB, Figma, Sentry, browser</td><td>Tool definitions</td></tr>
+        <tr><td><code>Plugin</code></td><td>Mela irukkura ellathaiyum package panni share</td><td>Team-ku same setup distribute pannanum</td><td>Ulla irukkuradhai poruthu</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>CLAUDE.md: "Edit pannadhum eppovum
+prettier run pannu"</pre><p>CLAUDE.md = suggestion. Claude marandhudalaam. 100% guarantee illa.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>PostToolUse hook → prettier --write</pre><p>Hook = code. Ovvoru edit-kkum <b>kandippa</b> odum. "Must always happen" na hook.</p></div>
+    </div>
+  </section>
+
+  <!-- MEMORY -->
+  <section id="memory">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Memory</span>
+      <h2><code>CLAUDE.md</code> hierarchy</h2>
+      <p class="muted">Ellaa levels-um <b>serndhu</b> load aagum (override illa, concatenate).</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Level</th><th>Path</th><th>Yaarukku</th></tr></thead>
+      <tbody>
+        <tr><td><code>Managed</code></td><td><code>/etc/claude-code/CLAUDE.md</code> (Linux)</td><td>Company-wide, IT set pannum</td></tr>
+        <tr><td><code>User</code></td><td><code>~/.claude/CLAUDE.md</code></td><td>Unga personal, ella projects-kkum</td></tr>
+        <tr><td><code>Project</code></td><td><code>./CLAUDE.md</code> or <code>./.claude/CLAUDE.md</code></td><td>Team, git-la commit</td></tr>
+        <tr><td><code>Local</code></td><td><code>./CLAUDE.local.md</code></td><td>Unga mattum, <code>.gitignore</code>-la podunga</td></tr>
+        <tr><td><code>Subfolder</code></td><td><code>src/api/CLAUDE.md</code></td><td>Andha folder files touch pannum podhu dhaan load</td></tr>
+        <tr><td><code>Rules</code></td><td><code>.claude/rules/*.md</code></td><td>Topic-wise split; <code>paths:</code> frontmatter vachu specific files-ku mattum</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>.claude/rules/api.md</span></div><pre>---
+paths: ["src/api/**/*.ts"]
+---
+- Ella endpoints-um zod vachu input validate pannanum
+- Errors {"error": "..."} format-la return
+
+<span class="c"># CLAUDE.md-la vera file import panna:</span>
+See @docs/architecture.md for structure.   <span class="c"># @path import, max depth 4</span></pre></div>
+    <div class="note"><b>Auto memory</b> thani: Claude thaane ezhudhura notes (first 200 lines / 25KB load aagum). <code>CLAUDE.md</code> illana <code>AGENTS.md</code> padikkum (Codex compatible).</div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Config</span>
+      <h2><code>settings.json</code> + permissions</h2>
+      <p class="muted">Precedence: mela irukkuradhu jeyikkum.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>#</th><th>File</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td><code>1</code></td><td>Managed settings</td><td>Company policy. Yaarum override panna mudiyaadhu</td></tr>
+        <tr><td><code>2</code></td><td><code>--settings</code> CLI flag</td><td>Indha session mattum</td></tr>
+        <tr><td><code>3</code></td><td><code>.claude/settings.local.json</code></td><td>Unga personal project settings (commit vendaam)</td></tr>
+        <tr><td><code>4</code></td><td><code>.claude/settings.json</code></td><td>Team shared (commit)</td></tr>
+        <tr><td><code>5</code></td><td><code>~/.claude/settings.json</code></td><td>Unga global default</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>.claude/settings.json</span></div><pre>{
+  "permissions": {
+    "allow": ["Bash(npm run lint)", "Bash(npm run test *)"],
+    "deny":  ["Read(./.env)", "Read(./.env.*)", "Bash(rm -rf *)"],
+    "defaultMode": "plan"
+  }
+}</pre></div>
+    <div class="note">Syntax <code>Tool(specifier)</code>. <code>Bash(git diff *)</code> = space + <code>*</code> = prefix match. <b>deny</b> eppovum <b>allow</b>-ah vida strong. Secrets (<code>.env</code>) eppovum deny-la podunga: exam "least privilege" question idhu dhaan.</div>
+  </section>
+
+  <!-- SKILLS -->
+  <section id="skills">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Skills</span>
+      <h2>Skills: on-demand expertise</h2>
+      <p class="muted">Folder + <code>SKILL.md</code>. Claude description match aana thaane load pannum, illana neenga <code>/name</code> type pannalaam. Pazhaiya <code>.claude/commands/*.md</code> innum work aagum; ippo skills-oda merge aayiduchu.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Location</th><th>Scope</th></tr></thead>
+      <tbody>
+        <tr><td><code>.claude/skills/&lt;name&gt;/SKILL.md</code></td><td>Project (team)</td></tr>
+        <tr><td><code>~/.claude/skills/&lt;name&gt;/SKILL.md</code></td><td>Personal, ella projects</td></tr>
+        <tr><td><code>&lt;plugin&gt;/skills/&lt;name&gt;/SKILL.md</code></td><td>Plugin; <code>/plugin-name:skill</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>.claude/skills/add-endpoint/SKILL.md</span></div><pre>---
+name: add-endpoint
+description: Add a new REST endpoint to todo-api with a vitest test. Use when asked to create an API route.
+argument-hint: &lt;METHOD&gt; &lt;path&gt;
+allowed-tools: Read Edit Write Bash(npm test *)
+---
+Add endpoint $ARGUMENTS:
+1. Route-ah src/app.js-la add pannu, existing style follow pannu
+2. tests/ folder-la happy path + oru error case test
+3. npm test run pannu, pass aagura varaikkum fix pannu</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Frontmatter</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>description</code></td><td><b>Mukkiyam.</b> Claude idhai vachu dhaan eppo use pannanum nu decide pannum</td></tr>
+        <tr><td><code>disable-model-invocation: true</code></td><td>Neenga <code>/name</code> type pannaa mattum (deploy maadhiri risky stuff)</td></tr>
+        <tr><td><code>user-invocable: false</code></td><td>Claude mattum use pannum, <code>/</code> menu-la varaadhu</td></tr>
+        <tr><td><code>allowed-tools</code></td><td>Skill odum podhu permission kekkaama allow</td></tr>
+        <tr><td><code>context: fork</code></td><td>Thani subagent context-la odum</td></tr>
+        <tr><td><code>$ARGUMENTS</code>, <code>$0</code>, <code>$1</code></td><td><code>/add-endpoint GET /todos/:id</code> → arguments</td></tr>
+      </tbody>
+    </table></div>
+    <div class="why"><p><strong>Progressive disclosure:</strong> start-la name + description mattum context-la. Invoke aana dhaan body load. Extra files (<code>reference.md</code>, <code>scripts/</code>) SKILL.md-la irundhu reference pannunga. SKILL.md 500 lines-kkulla vachukkonga. Adhanaala 50 skills irundhaalum context waste aagaadhu.</p></div>
+  </section>
+
+  <!-- SUBAGENTS -->
+  <section id="agents">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Subagents</span>
+      <h2>Subagents: thani context-la specialist</h2>
+      <p class="muted">Fresh context window. Verbose work ulla nadakkum, <b>summary mattum</b> main chat-ku varum. Built-in: <code>Explore</code>, <code>Plan</code>, <code>general-purpose</code>.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>.claude/agents/code-reviewer.md</span></div><pre>---
+name: code-reviewer
+description: Reviews changed code for bugs, security and missing tests. Use after any feature is implemented.
+tools: Read, Grep, Glob, Bash
+model: sonnet
+---
+You are a strict senior reviewer. Run `git diff`, then report:
+1. Bugs  2. Security issues  3. Missing tests
+For each: file:line, why it matters, suggested fix.</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>name</code>, <code>description</code></td><td>Required. Description vachu Claude thaane delegate pannum</td></tr>
+        <tr><td><code>tools</code></td><td>Least privilege: reviewer-ku Edit vendaam</td></tr>
+        <tr><td><code>model</code></td><td><code>haiku</code> / <code>sonnet</code> / <code>opus</code> / <code>inherit</code>: cheap task-ku cheap model</td></tr>
+        <tr><td><code>permissionMode</code>, <code>maxTurns</code>, <code>skills</code>, <code>mcpServers</code></td><td>Fine control</td></tr>
+        <tr><td><code>isolation: worktree</code></td><td>Thani git worktree-la work</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Invoke: automatic (description match), "use the code-reviewer agent to...", <code>@code-reviewer</code>, or <code>claude --agent code-reviewer</code>. Locations: <code>.claude/agents/</code> (project) &gt; <code>~/.claude/agents/</code> (user).</div>
+  </section>
+
+  <!-- HOOKS -->
+  <section id="hooks">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Hooks</span>
+      <h2>Hooks: deterministic guarantees</h2>
+      <p class="muted">Claude lifecycle-la specific event nadakkum podhu <b>unga script</b> odum. AI decide pannaadhu.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Event</th><th>Eppo</th><th>Typical use</th></tr></thead>
+      <tbody>
+        <tr><td><code>PreToolUse</code></td><td>Tool odurathukku munnadi</td><td><b>Block</b> dangerous commands, protect files</td></tr>
+        <tr><td><code>PostToolUse</code></td><td>Tool mudinjappuram</td><td>Auto format, lint</td></tr>
+        <tr><td><code>UserPromptSubmit</code></td><td>Neenga prompt anuppumbodhu</td><td>Context add, secrets block</td></tr>
+        <tr><td><code>Stop</code></td><td>Claude answer mudikkum podhu</td><td>"Tests pass aagala, innum mudiyala" nu thirumba anuppa</td></tr>
+        <tr><td><code>SessionStart</code> / <code>SessionEnd</code></td><td>Session start / end</td><td>Env setup, logs</td></tr>
+        <tr><td><code>Notification</code></td><td>Claude unga input-ku wait pannum podhu</td><td>Desktop notification</td></tr>
+        <tr><td><code>SubagentStop</code>, <code>PreCompact</code>, ...</td><td>Total 33 events</td><td>Full list: docs</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>.claude/settings.json · auto-format after edit</span></div><pre>{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/prettier.sh" }
+        ]
+      }
+    ]
+  }
+}</pre></div>
+    <div class="term"><div class="term-bar"><span>.claude/hooks/prettier.sh</span></div><pre>#!/usr/bin/env bash
+<span class="c"># Hook stdin-la JSON varum: {"tool_name": "Edit", "tool_input": {"file_path": ...}}</span>
+FILE=$(jq -r '.tool_input.file_path // empty')
+[ -n "$FILE" ] &amp;&amp; npx --no-install prettier --write "$FILE" &gt;/dev/null 2&gt;&amp;1
+exit 0</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Exit code</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>0</code></td><td>Success. stdout JSON-aa irundha parse pannum</td></tr>
+        <tr><td><code>2</code></td><td><b>Block.</b> stderr message Claude-ku pogum (PostToolUse block panna mudiyaadhu, already nadandhuduchu)</td></tr>
+        <tr><td><code>other</code></td><td>Non-blocking error, continue</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">PreToolUse-la JSON vachum decide pannalaam: <code>{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"rm blocked"}}</code>. Values: <code>allow</code> / <code>deny</code> / <code>ask</code> / <code>defer</code>. Hook type <code>command</code> mattum illa: <code>http</code>, <code>prompt</code>, <code>agent</code>, <code>mcp_tool</code>-um irukku.</div>
+  </section>
+
+  <!-- MCP -->
+  <section id="mcp">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · MCP</span>
+      <h2>MCP: Claude-ah external world-oda connect</h2>
+      <p class="muted">Model Context Protocol = AI tools-kkaana "USB-C". Oru server ezhudhina Claude Code, Claude Desktop, vera MCP clients ellathulaiyum work aagum. Server moonu vishayam expose pannum: <b>tools</b>, <b>resources</b>, <b>prompts</b>.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>claude mcp add --transport http sentry https://mcp.sentry.dev/mcp</code></td><td>Remote HTTP server add (recommended for remote)</td></tr>
+        <tr><td><code>claude mcp add my-db -e DB_URL=... -- npx my-mcp-server</code></td><td>Local <b>stdio</b> server (unga machine-la process-aa odum)</td></tr>
+        <tr><td><code>claude mcp add -s project ...</code></td><td>Scope: <code>local</code> (default) / <code>project</code> / <code>user</code></td></tr>
+        <tr><td><code>claude mcp list</code> / <code>get</code> / <code>remove</code></td><td>Manage</td></tr>
+        <tr><td><code>/mcp</code></td><td>Session-kulla: status, OAuth login, reconnect</td></tr>
+        <tr><td><code>@server:resource</code></td><td>MCP resource-ah prompt-la reference</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Scope</th><th>Stored in</th><th>Share aagumaa</th></tr></thead>
+      <tbody>
+        <tr><td><code>local</code></td><td><code>~/.claude.json</code> (indha project path-ku)</td><td>Illa, neenga mattum</td></tr>
+        <tr><td><code>project</code></td><td><code>.mcp.json</code> (project root)</td><td>Aamaa, git commit. Team-mates approve pannanum</td></tr>
+        <tr><td><code>user</code></td><td><code>~/.claude.json</code></td><td>Unga ella projects-kkum</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>.mcp.json</span></div><pre>{
+  "mcpServers": {
+    "github": { "type": "http", "url": "https://api.githubcopilot.com/mcp/" },
+    "local-db": {
+      "command": "npx",
+      "args": ["-y", "my-db-mcp"],
+      "env": { "DB_URL": "${DB_URL}" }
+    }
+  }
+}</pre></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>"env": { "API_KEY": "sk-live-abc123" }</pre><p><code>.mcp.json</code> git-la commit aagum. Key leak.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>"env": { "API_KEY": "${API_KEY}" }</pre><p>Env var expansion. <code>${VAR:-default}</code>-um support.</p></div>
+    </div>
+    <div class="note">Transports: <code>stdio</code> (local process), <code>http</code> (remote, recommended), <code>sse</code> (deprecated). Tool names <code>mcp__&lt;server&gt;__&lt;tool&gt;</code> format-la theriyum; hooks/permissions matcher-la idhai use pannalaam. <b>Security:</b> MCP server-oda tool output untrusted data; prompt injection varalaam.</div>
+  </section>
+
+  <!-- PLUGINS -->
+  <section id="plugins">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Plugins</span>
+      <h2>Plugins: ellathaiyum package panni share</h2>
+    </div>
+    <div class="term"><div class="term-bar"><span>my-plugin/</span></div><pre>my-plugin/
+├── .claude-plugin/plugin.json   <span class="c"># name, version, description</span>
+├── skills/add-endpoint/SKILL.md
+├── agents/code-reviewer.md
+├── hooks/hooks.json
+└── .mcp.json</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>/plugin</code></td><td>Manager: Discover, Installed, Marketplaces</td></tr>
+        <tr><td><code>/plugin marketplace add &lt;repo&gt;</code></td><td>Marketplace (<code>.claude-plugin/marketplace.json</code> irukkura repo) add</td></tr>
+        <tr><td><code>name@marketplace</code></td><td>Install format</td></tr>
+        <tr><td><code>claude plugin validate &lt;path&gt;</code></td><td>Plugin structure check</td></tr>
+        <tr><td><code>claude plugin details &lt;name&gt;</code></td><td>Ulla enna irukku + token cost</td></tr>
+        <tr><td><code>claude plugin eval</code></td><td>Plugin-ku eval test cases run</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- HEADLESS -->
+  <section id="headless">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Automation</span>
+      <h2>Headless mode + Agent SDK</h2>
+      <p class="muted">Human illaama scripts, CI, cron-la Claude-ah odavaikkuradhu.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>terminal</span></div><pre><span class="p">$ </span>claude -p "summarize the README"
+<span class="p">$ </span>git diff | claude -p "review this diff for bugs"
+<span class="p">$ </span>claude -p "fix lint errors" --allowedTools "Read,Edit,Bash(npm run lint)"
+<span class="p">$ </span>claude -p "list TODOs" --output-format json          <span class="c"># text | json | stream-json</span>
+<span class="p">$ </span>claude -p "extract version" --json-schema '{"type":"object","properties":{"version":{"type":"string"}}}'
+<span class="p">$ </span>claude -p "..." --bare                               <span class="c"># hooks/skills/MCP/CLAUDE.md skip; scripts-ku recommended, ANTHROPIC_API_KEY venum</span></pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Option</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td><code>Agent SDK</code></td><td>Claude Code-oda agent loop-ah unga code-la: Python <code>claude-agent-sdk</code>, TypeScript <code>@anthropic-ai/claude-agent-sdk</code></td></tr>
+        <tr><td><code>GitHub Actions</code></td><td>PR / issue-la <code>@claude</code> mention panna run aagum (docs: code.claude.com/docs/en/github-actions)</td></tr>
+        <tr><td><code>--max-budget-usd</code></td><td>CI-la cost limit</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Exam link: "Agent Construction with Claude" = Agent SDK + custom agent loops. Indha CLI <code>-p</code> dhaan adhoda simplest form.</div>
+  </section>
+
+  <!-- MORE -->
+  <section id="more">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Safety &amp; parallel</span>
+      <h2>Checkpoints, worktrees, output styles</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Feature</th><th>Enna</th><th>Gotcha</th></tr></thead>
+      <tbody>
+        <tr><td><code>Esc Esc</code> / <code>/rewind</code></td><td>Ovvoru prompt-kkum munnadi checkpoint (100 varaikkum). Code and/or conversation restore</td><td>Bash vachu maathuna files, external edits restore <b>aagaadhu</b>. Git-ku replacement illa</td></tr>
+        <tr><td><code>claude -w feature-x</code></td><td>Thani git worktree-la session. Pala tasks parallel-ah, files clash aagaadhu</td><td>Repo-la kammi oru commit irukkanum</td></tr>
+        <tr><td><code>/output-style</code></td><td>Default, Proactive, Concise, Explanatory, <b>Learning</b></td><td>Kathukkum podhu <code>Learning</code> try pannunga: Claude unga kitta code ezhudha sollum</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 10 · Your turn</span>
+      <h2>Practice: <code>todo-api</code>-ku full setup</h2>
+      <p class="muted">Lesson 2 practice mudinjirukkanum (todo-api + git + GET /todos). Files-ah <b>neengalae</b> create pannunga; Claude-ah ezhudha sonna kathukka mudiyaadhu.</p>
+      <span class="counter" id="count">0 / 10 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span><code>claude</code> → <code>/init</code>. Generate aana <code>CLAUDE.md</code>-ah padinga, thappu irundha neengalae edit</span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span><code>.claude/settings.json</code> create: <code>npm test</code> allow, <code>.env</code> read deny. <code>/permissions</code>-la verify</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span><code>.claude/skills/add-endpoint/SKILL.md</code> (Step 3 example). Session restart → <code>/add-endpoint POST /todos</code></span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span>Skill result: tests pass aachaa? <code>! npm test</code>, apram commit</span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span><code>.claude/agents/code-reviewer.md</code> (Step 4). "use the code-reviewer agent on the last commit"</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span>PostToolUse prettier hook setup (<code>npm i -D prettier</code>, <code>chmod +x</code> script, <code>jq</code> install). Oru file-ah messy-ah edit panna sollunga, auto format aagudhaa?</span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span>PreToolUse hook: <code>rm</code> commands block. "delete the tests folder" sollunga, block aagudhaa nu test</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span><code>claude mcp list</code> + session-la <code>/mcp</code>: already connected servers paarunga</span></label></li>
+      <li><input type="checkbox" id="s9"><label for="s9"><span class="n"></span><span>Terminal-la: <code>git diff HEAD~1 | claude -p "review for bugs" --output-format json</code></span></label></li>
+      <li><input type="checkbox" id="s10"><label for="s10"><span class="n"></span><span><code>.claude/</code> folder-ah commit: team-mates-kkum same setup</span></label></li>
+    </ol>
+    <div class="note">Ovvoru step mudinjadhum chat-la sollunga. Stuck aana error message paste pannunga.</div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 11 · Check</span>
+      <h2>Quick quiz (exam style)</h2>
+    </div>
+    <div class="stack">
+      <details><summary>1. "Commit pannurathukku munnadi eppovum tests odanum" nu guarantee venum. CLAUDE.md, Skill, Hook: edhu?</summary><p><b>Hook.</b> CLAUDE.md, Skill rendum Claude-oda decision; marandhudalaam. Hook = deterministic code, ovvoru thadavaiyum odum.</p></details>
+      <details><summary>2. 200-file codebase-la oru function enga use aagudhu nu search pannanum, main context full aaga koodaadhu. Enna use pannuveenga?</summary><p><b>Subagent</b> (e.g. Explore). Thani context-la search pannum, summary mattum thirumba varum.</p></details>
+      <details><summary>3. Team-la ellarukkum same Postgres MCP server venum, aana password share aaga koodaadhu. Eppadi?</summary><p><code>claude mcp add -s project ...</code> → <code>.mcp.json</code> commit, password <code>${DB_PASSWORD}</code> env var-aa. Ovvoruthar machine-la avanga env var.</p></details>
+      <details><summary>4. 30 skills install pannirukkom. Context window full aagidumaa?</summary><p>Illa. <b>Progressive disclosure</b>: name + description mattum always loaded; full SKILL.md invoke pannum podhu dhaan.</p></details>
+      <details><summary>5. PreToolUse hook exit code 2 return pannudhu. Enna nadakkum?</summary><p>Tool call <b>block</b> aagum, stderr message Claude-ku feedback-aa pogum; Claude vera vazhi try pannum.</p></details>
+      <details><summary>6. <code>.claude/settings.json</code>-la allow, <code>~/.claude/settings.json</code>-la deny. Same rule. Edhu jeyikkum?</summary><p><b>Deny.</b> Deny rules eppovum allow-ah vida priority. (Precedence order project &gt; user, aana deny always wins.)</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"Always-on rules-ku CLAUDE.md, on-demand workflows-ku Skills, heavy search/review-ku context isolation-kaaga Subagents, must-always-happen automation-ku Hooks, external systems-ku MCP, team distribution-ku Plugins. Rule: guarantee venumna code (hook), judgment venumna model (skill/agent)."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson03-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){
+      b.closest("li").classList.toggle("done", b.checked);
+      if (b.checked) done++;
+    });
+    count.textContent = done + " / " + boxes.length + " done";
+  }
+
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>

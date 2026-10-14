@@ -1,0 +1,16 @@
+# Practice projects have their own git repos
+todo-api/
+claude-api-lab/
+todo-mcp/
+
+# Secrets
+.env
+.env.*
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+.vscode/
+node_modules/

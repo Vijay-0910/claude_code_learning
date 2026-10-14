@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Build an MCP Server</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as the lessons — one reading column, each MCP concept a page with tables and code */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Lesson 8 · CCDV-F: Tools &amp; MCPs (10.6%) · Security (8.1%)</span>
+    <h1>Build an MCP Server</h1>
+    <p class="lede">Lesson 3-la MCP server-ah <b>use</b> pannom. Ippo unga sondha MCP server-ah TypeScript-la <b>build</b> panni, Claude Code-la connect panni, Messages API-la irundhum call pannalaam. Exam "MCP Server Development" sub-skill idhu dhaan.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#why">Why</a></li>
+      <li><a href="#arch">Architecture</a></li>
+      <li><a href="#primitives">Primitives</a></li>
+      <li><a href="#transports">Transports</a></li>
+      <li><a href="#build">Build</a></li>
+      <li><a href="#test">Test &amp; connect</a></li>
+      <li><a href="#connector">API connector</a></li>
+      <li><a href="#security">Security</a></li>
+      <li><a href="#choose">Skill vs MCP</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <!-- WHY -->
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Why</span>
+      <h2>Yen sondha MCP server ezhudhanum?</h2>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Without MCP</span><pre>Claude Code-ku oru custom tool
+Claude Desktop-ku vera code
+Cursor-ku innoru plugin
+Unga API-ku 3 integration ezhudhanum</pre><p>Ovvoru AI app-kkum thani integration. N apps × M tools = N×M work.</p></div>
+      <div class="good"><span class="tag">With MCP</span><pre>Oru MCP server ezhudhunga
+Claude Code, Claude Desktop, Cursor,
+VS Code... ellaame connect aagum</pre><p>Open standard. Oru thadava build, ella MCP hosts-lum work. N + M work mattum.</p></div>
+    </div>
+    <div class="why"><p><strong>Real use:</strong> Company internal API (orders, tickets, DB) Claude-ku safe-aa expose pannanum. MCP server nadula ukkaandhu, <b>enna tools, enna data</b> nu neenga dhaan control pannureenga.</p></div>
+  </section>
+
+  <!-- ARCH -->
+  <section id="arch">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Concept</span>
+      <h2>Host, Client, Server</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Role</th><th>Enna</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>Host</code></td><td>User use pannura AI app. Model idhula dhaan irukkum</td><td>Claude Code, Claude Desktop, VS Code</td></tr>
+        <tr><td><code>Client</code></td><td>Host-kulla irukkura connector; <b>oru server-ku oru client</b></td><td>Claude Code ulla irukkura MCP client</td></tr>
+        <tr><td><code>Server</code></td><td>Tools / data expose pannura unga program</td><td>Neenga ezhudhura <code>todo-mcp</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>flow</span></div><pre>User → Host (Claude Code) → Client ──JSON-RPC──→ Server (todo-mcp) → unga DB / API
+                                  ←── tools list, results ──</pre></div>
+    <div class="note">Protocol = <b>JSON-RPC 2.0</b>. Start-la client "initialize" pannum, server enna capabilities irukku nu sollum, apram <code>tools/list</code>, <code>tools/call</code> maadhiri requests.</div>
+  </section>
+
+  <!-- PRIMITIVES -->
+  <section id="primitives">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Concept</span>
+      <h2>Moonu primitives: Tools, Resources, Prompts</h2>
+      <p class="muted">Exam-la "yaaru control pannuvaanga" nu kekkuvaanga. Idhu dhaan key difference.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Primitive</th><th>Yaaru control</th><th>Enna</th><th>Claude Code-la eppadi</th></tr></thead>
+      <tbody>
+        <tr><td><code>Tools</code></td><td><b>Model</b> decide pannum</td><td>Action: create, update, API call. Side effects irukkalaam</td><td>Claude thaane call pannum (<code>mcp__server__tool</code>)</td></tr>
+        <tr><td><code>Resources</code></td><td><b>App / user</b> select pannum</td><td>Read-only data, URI vachu: <code>todos://all</code></td><td><code>@server:resource</code> mention</td></tr>
+        <tr><td><code>Prompts</code></td><td><b>User</b> invoke pannum</td><td>Reusable prompt templates with arguments</td><td>Slash command maadhiri</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>Read-only config data-ku
+"get_config" tool</pre><p>Model-ku extra decision, extra tool definition tokens.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>config://app resource</pre><p>Static/read-only data = resource. Action = tool.</p></div>
+    </div>
+  </section>
+
+  <!-- TRANSPORTS -->
+  <section id="transports">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Concept</span>
+      <h2>Transports: stdio vs Streamable HTTP</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Transport</th><th>Eppadi odum</th><th>Eppo use</th></tr></thead>
+      <tbody>
+        <tr><td><code>stdio</code></td><td>Host unga server-ah <b>child process</b>-aa start pannum; stdin/stdout-la JSON-RPC</td><td>Local tools, unga machine files, dev. Simple, auth vendaam</td></tr>
+        <tr><td><code>Streamable HTTP</code></td><td>Server oru URL-la odum; HTTP POST + optional streaming</td><td>Remote / team / SaaS. OAuth or headers vachu auth</td></tr>
+        <tr><td><code>SSE</code></td><td>Pazhaiya HTTP transport</td><td><b>Deprecated.</b> Puthu server-ku vendaam</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong (stdio)</span><pre>console.log("server started");</pre><p>stdout = protocol channel. Oru <code>console.log</code> JSON-RPC stream-ah corrupt pannidum. Server mysterious-aa fail aagum.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>console.error("server started");</pre><p>Logs eppovum <b>stderr</b>-ku.</p></div>
+    </div>
+  </section>
+
+  <!-- BUILD -->
+  <section id="build">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Build</span>
+      <h2>Todo MCP server: TypeScript</h2>
+      <p class="muted">Official TypeScript SDK v2 (<code>@modelcontextprotocol/server</code>). Pazhaiya v1 package <code>@modelcontextprotocol/sdk</code>; tutorials-la adhu paappeenga, API konjam vera.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>terminal</span></div><pre><span class="p">$ </span>mkdir todo-mcp &amp;&amp; cd todo-mcp
+<span class="p">$ </span>npm init -y
+<span class="p">$ </span>npm pkg set type=module
+<span class="p">$ </span>npm install @modelcontextprotocol/server zod tsx
+<span class="p">$ </span>mkdir src</pre></div>
+    <div class="term"><div class="term-bar"><span>src/index.ts</span></div><pre>import { McpServer } from '@modelcontextprotocol/server';
+import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
+import * as z from 'zod/v4';
+
+type Todo = { id: number; title: string; done: boolean };
+const todos: Todo[] = [];
+
+const server = new McpServer({ name: 'todo-mcp', version: '1.0.0' });
+
+<span class="c">// TOOL: model decide pannum. Description = model-oda "manual"</span>
+server.registerTool(
+  'add_todo',
+  {
+    description: 'Add a todo item. Use when the user asks to remember or plan a task.',
+    inputSchema: z.object({
+      title: z.string().min(1).max(200).describe('Short task title')
+    })
+  },
+  async ({ title }) =&gt; {
+    const todo = { id: todos.length + 1, title, done: false };
+    todos.push(todo);
+    return { content: [{ type: 'text', text: `Added #${todo.id}: ${title}` }] };
+  }
+);
+
+server.registerTool(
+  'complete_todo',
+  {
+    description: 'Mark a todo as done by its numeric id.',
+    inputSchema: z.object({ id: z.number().int().positive() })
+  },
+  async ({ id }) =&gt; {
+    const todo = todos.find(t =&gt; t.id === id);
+    if (!todo) {
+      <span class="c">// isError: true → model error-ah padichu thirumba try pannum</span>
+      return { isError: true, content: [{ type: 'text', text: `No todo with id ${id}. Call list via the todos://all resource.` }] };
+    }
+    todo.done = true;
+    return { content: [{ type: 'text', text: `Completed #${id}` }] };
+  }
+);
+
+<span class="c">// RESOURCE: read-only data, URI vachu</span>
+server.registerResource(
+  'all-todos',
+  'todos://all',
+  { title: 'All todos', description: 'Every todo as JSON', mimeType: 'application/json' },
+  async uri =&gt; ({
+    contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(todos) }]
+  })
+);
+
+<span class="c">// PROMPT: user invoke pannura template</span>
+server.registerPrompt(
+  'plan-day',
+  {
+    title: 'Plan my day',
+    description: 'Turn open todos into a time-blocked plan',
+    argsSchema: z.object({ hours: z.string().describe('Working hours available') })
+  },
+  async ({ hours }) =&gt; ({
+    messages: [{
+      role: 'user' as const,
+      content: { type: 'text' as const, text: `I have ${hours} hours. Plan these todos: ${JSON.stringify(todos)}` }
+    }]
+  })
+);
+
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error('todo-mcp running on stdio');   <span class="c">// stderr!</span>
+}
+
+main();</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>API</th><th>Signature</th></tr></thead>
+      <tbody>
+        <tr><td><code>new McpServer()</code></td><td><code>{ name, version }</code></td></tr>
+        <tr><td><code>registerTool</code></td><td><code>(name, { description, inputSchema }, handler)</code> → <code>{ content: [...], isError? }</code></td></tr>
+        <tr><td><code>registerResource</code></td><td><code>(name, uri | new ResourceTemplate('users://{id}', { list: undefined }), metadata, read)</code> → <code>{ contents: [{ uri, text | blob, mimeType? }] }</code></td></tr>
+        <tr><td><code>registerPrompt</code></td><td><code>(name, { title, description, argsSchema }, handler)</code> → <code>{ messages: [{ role, content }] }</code></td></tr>
+        <tr><td><code>server.connect(transport)</code></td><td>stdio: <code>StdioServerTransport</code>. HTTP: SDK docs "HTTP serving" page paarunga</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Zod schema-la irundhu SDK thaane JSON Schema generate pannum, handler odurathukku <b>munnadiye</b> arguments validate pannum. Invalid call handler-ku varaadhu.</div>
+  </section>
+
+  <!-- TEST -->
+  <section id="test">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Test &amp; connect</span>
+      <h2>MCP Inspector, apram Claude Code</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>npx tsx src/index.ts</code></td><td>Server start (stdin-la wait pannum, adhu normal)</td></tr>
+        <tr><td><code>npx @modelcontextprotocol/inspector npx tsx src/index.ts</code></td><td>Browser UI: Connect → Tools tab → tool select → run. Claude illaama test</td></tr>
+        <tr><td><code>claude mcp add todo -- npx tsx /full/path/todo-mcp/src/index.ts</code></td><td>Claude Code-la add (local scope). <code>--</code>-ku apram dhaan server command</td></tr>
+        <tr><td><code>claude mcp add -s project todo -- ...</code></td><td><code>.mcp.json</code>-la; team share</td></tr>
+        <tr><td><code>claude mcp list</code> / <code>claude mcp get todo</code></td><td>Status check</td></tr>
+        <tr><td><code>/mcp</code></td><td>Session-kulla: connected? tools enna?</td></tr>
+        <tr><td><code>@todo:todos://all</code></td><td>Resource-ah prompt-la reference</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>claude mcp add todo npx tsx src/index.ts</pre><p><code>--</code> illa, relative path. Claude Code vera folder-la start aana path break.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>claude mcp add todo -- npx tsx ~/Desktop/Learn_Claude_Code/todo-mcp/src/index.ts</pre><p>Absolute path, <code>--</code> separator.</p></div>
+    </div>
+  </section>
+
+  <!-- CONNECTOR -->
+  <section id="connector">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · Claude API</span>
+      <h2>MCP connector: Messages API-la irundhu remote MCP</h2>
+      <p class="muted">Unga app code-la MCP client ezhudha vendaam. Anthropic server-side-aa unga <b>remote (URL)</b> MCP server-ku connect pannum. Beta: <code>mcp-client-2025-11-20</code>.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>connector.ts</span></div><pre>import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();
+
+const response = await client.beta.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  betas: ["mcp-client-2025-11-20"],
+  mcp_servers: [
+    {
+      type: "url",
+      url: "https://todo.example.com/mcp",
+      name: "todo",
+      authorization_token: process.env.TODO_MCP_TOKEN
+    }
+  ],
+  tools: [{ type: "mcp_toolset", mcp_server_name: "todo" }],   <span class="c">// rendum kandippa venum</span>
+  messages: [{ role: "user", content: "Add 'renew passport' to my todos" }]
+});</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Field</th><th>Rule</th></tr></thead>
+      <tbody>
+        <tr><td><code>mcp_servers</code></td><td><code>{ type: "url", url, name, authorization_token? }</code>. Remote URL mattum; stdio illa</td></tr>
+        <tr><td><code>mcp_toolset</code></td><td>Ovvoru server-um <b>sariyaa oru</b> toolset-la reference aaganum; illana validation error</td></tr>
+        <tr><td><code>default_config</code></td><td>E.g. <code>{ enabled: false }</code> = allowlist mode</td></tr>
+        <tr><td><code>configs</code></td><td>Per-tool override, tool name key</td></tr>
+        <tr><td>Platforms</td><td>Claude API, Claude Platform on AWS, Foundry (beta). Bedrock / Vertex-la <b>illa</b></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- SECURITY -->
+  <section id="security">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Security</span>
+      <h2>MCP security checklist</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Risk</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Model thappaana input anuppum</td><td>Zod-la strict schema: <code>.min()</code>, <code>.max()</code>, <code>.int()</code>, enums. Handler-layum business checks</td></tr>
+        <tr><td>Over-powered tools</td><td><b>Least privilege:</b> <code>run_sql(query)</code> vendaam; <code>get_order(id)</code> maadhiri narrow tools. Read-only DB user</td></tr>
+        <tr><td>Secrets leak</td><td>Env vars (<code>-e API_KEY=...</code>, <code>${VAR}</code> in <code>.mcp.json</code>). Code / git-la hardcode illa</td></tr>
+        <tr><td>Prompt injection</td><td>Tool output (web page, ticket text, email) <b>untrusted data</b>. Adhula "ignore previous instructions" irukkalaam. Destructive actions-ku human approval</td></tr>
+        <tr><td>Untrusted third-party servers</td><td>Source paathu, trusted publishers mattum. Project <code>.mcp.json</code> servers-ah Claude Code approve kekkum</td></tr>
+        <tr><td>Remote server auth</td><td>OAuth / bearer token; HTTPS mattum</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>registerTool('run_sql', { inputSchema:
+  z.object({ query: z.string() }) }, ...)</pre><p>Model (or injected prompt) <code>DROP TABLE</code> pannalaam.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>registerTool('get_order', { inputSchema:
+  z.object({ id: z.number().int() }) }, ...)</pre><p>Narrow, parameterized, read-only query ulla.</p></div>
+    </div>
+  </section>
+
+  <!-- CHOOSE -->
+  <section id="choose">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Decide</span>
+      <h2>Built-in tool vs custom tool vs Skill vs MCP</h2>
+      <p class="muted">Exam "Agentic Customization" sub-skill.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Need</th><th>Choose</th><th>Yen</th></tr></thead>
+      <tbody>
+        <tr><td>Web search, code run, file edit</td><td><code>Built-in / server tool</code></td><td>Already irukku; ezhudha vendaam</td></tr>
+        <tr><td>Oru app-kulla mattum unga function</td><td><code>Custom tool</code> (API <code>tools</code>)</td><td>Simple, unga process-la odum</td></tr>
+        <tr><td>Know-how / steps / templates, external system illa</td><td><code>Skill</code></td><td>Instructions + scripts; on-demand load</td></tr>
+        <tr><td>External system, pala hosts-la reuse</td><td><code>MCP server</code></td><td>Standard protocol, oru thadava build</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Your turn</span>
+      <h2>Practice: todo-mcp build panni Claude Code-la use pannunga</h2>
+      <p class="muted">Code-ah neengalae type pannunga. Copy-paste panna kathukka mudiyaadhu.</p>
+      <span class="counter" id="count">0 / 10 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span>Step 4 commands vachu <code>todo-mcp</code> project setup, <code>git init</code></span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span><code>src/index.ts</code>-la mudhalla <code>add_todo</code> tool mattum ezhudhunga</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span>Inspector-la test: <code>npx @modelcontextprotocol/inspector npx tsx src/index.ts</code></span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span>Inspector-la empty title anuppunga. Zod reject pannudhaa?</span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span><code>complete_todo</code> + <code>isError</code> path add, test</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span><code>todos://all</code> resource + <code>plan-day</code> prompt add</span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span>Oru <code>console.log</code> podunga, Inspector-la enna aagudhu nu paarunga, apram <code>console.error</code>-ku maathunga</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span><code>claude mcp add todo -- npx tsx &lt;absolute path&gt;</code>, apram <code>claude</code> → <code>/mcp</code></span></label></li>
+      <li><input type="checkbox" id="s9"><label for="s9"><span class="n"></span><span>"Add three todos for tomorrow" sollunga; permission prompt-la tool name <code>mcp__todo__add_todo</code> paarunga</span></label></li>
+      <li><input type="checkbox" id="s10"><label for="s10"><span class="n"></span><span>Commit: <code>git add -A &amp;&amp; git commit -m "feat: todo MCP server"</code></span></label></li>
+    </ol>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 10 · Check</span>
+      <h2>Quick quiz (exam style)</h2>
+    </div>
+    <div class="stack">
+      <details><summary>1. Stdio MCP server Claude Code-la connect aagudhu, aana first call-laye fail. Code-la <code>console.log</code> irukku. Cause?</summary><p>Stdio-la stdout = JSON-RPC channel. <code>console.log</code> protocol-ah corrupt pannudhu. <code>console.error</code> (stderr) use pannunga.</p></details>
+      <details><summary>2. Product catalog (read-only) model-ku kudukkanum. Tool-aa resource-aa?</summary><p><b>Resource.</b> Read-only, app/user-controlled data. Tools = actions, model-controlled.</p></details>
+      <details><summary>3. Messages API-la <code>mcp_servers</code> mattum kuduthinga, error varudhu. Yen?</summary><p><code>tools</code>-la matching <code>{ type: "mcp_toolset", mcp_server_name }</code> kandippa venum, kooda beta <code>mcp-client-2025-11-20</code>.</p></details>
+      <details><summary>4. Team-wide remote server, 50 developers, internet-la odanum. Transport?</summary><p><b>Streamable HTTP</b> + OAuth / token auth. Stdio local process-ku mattum. SSE deprecated.</p></details>
+      <details><summary>5. Support-ticket MCP tool ticket text return pannudhu; adhula "delete all customers" nu irukku. Risk name + defence?</summary><p><b>Prompt injection</b> (indirect). Tool output-ah untrusted data-aa treat pannunga, tools least-privilege-aa vachunga, destructive actions-ku human approval / hooks.</p></details>
+      <details><summary>6. Tool call-la id kedaikkala. Throw pannanumaa?</summary><p>Illa: <code>{ isError: true, content: [...] }</code> return pannunga, clear message-oda. Model padichu correct-aa retry pannum.</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"MCP = AI apps-kaana open standard. Naan TypeScript SDK-la server build pannen: actions-ku tools, read-only data-ku resources, templates-ku prompts. Zod vachu input validate, logs stderr-ku, secrets env-la, narrow least-privilege tools. Local-ku stdio, remote-ku Streamable HTTP; API-la irundhu MCP connector vachu call."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson08-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){
+      b.closest("li").classList.toggle("done", b.checked);
+      if (b.checked) done++;
+    });
+    count.textContent = done + " / " + boxes.length + " done";
+  }
+
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>

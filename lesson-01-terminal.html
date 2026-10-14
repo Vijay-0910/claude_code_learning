@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lesson 1 Terminal Basics</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as ai-coding-path.html — one reading column, each command a "page" with a flag table */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Level 0 · Lesson 1 of 5</span>
+    <h1>Terminal Basics</h1>
+    <p class="lede">5 commands: <code>pwd</code>, <code>ls</code>, <code>cd</code>, <code>mkdir</code>, <code>cat</code>. Ovvoru command-kkum mukkiyamaana options ellam inga irukku. Padichittu, kadaisila irukkura practice steps-ah terminal-la neengalae type pannunga.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#why">Why</a></li>
+      <li><a href="#paths">Paths</a></li>
+      <li><a href="#pwd">pwd</a></li>
+      <li><a href="#ls">ls</a></li>
+      <li><a href="#cd">cd</a></li>
+      <li><a href="#mkdir">mkdir</a></li>
+      <li><a href="#cat">cat</a></li>
+      <li><a href="#keys">Shortcuts</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <!-- WHY -->
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Why</span>
+      <h2>Yen terminal mudhalla kathukkanum?</h2>
+    </div>
+    <div class="why stack">
+      <p>Claude Code, Codex, Gemini CLI: moonume <strong>terminal-la dhaan</strong> odum. AI "file create panniten" nu sonna, adhu unmaiyaa nu neenga <code>ls</code>, <code>cat</code> vachu check pannanum.</p>
+      <p>"Naan enga irukken? Inga enna files irukku?" nu theriyalana, AI sonnadhai kanmoodithanamaa nambura nelamai varum. Adhu dhaan vibe coding. Check panradhu dhaan engineering.</p>
+    </div>
+    <div class="note"><strong>Golden rule:</strong> Check → Act → Verify. Mudhalla enga irukkom nu paaru, apram command, apram result-ah verify pannu.</div>
+  </section>
+
+  <!-- PATHS -->
+  <section id="paths">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Concept</span>
+      <h2>Path na enna?</h2>
+      <p class="muted">Commands-ku munnadi idhu theriyanum. Path = oru file/folder-oda address.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Symbol</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>/</code></td><td>Root: full system-oda top folder</td><td><code>/home</code></td></tr>
+        <tr><td><code>~</code></td><td>Unga home folder (<code>/home/vijayakumar</code>)</td><td><code>~/Desktop</code></td></tr>
+        <tr><td><code>.</code></td><td>Current folder (ippo irukkura idam)</td><td><code>./notes.txt</code></td></tr>
+        <tr><td><code>..</code></td><td>Parent folder (oru level mela)</td><td><code>../other</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Relative path</span><pre>cd todo-api</pre><p>Ippo irukkura folder-la irundhu. Location maarina, idhu fail aagum.</p></div>
+      <div class="good"><span class="tag">Absolute path</span><pre>cd ~/Desktop/Learn_Claude_Code/todo-api</pre><p>Enga irundhaalum work aagum. <code>/</code> or <code>~</code>-la start aagum.</p></div>
+    </div>
+  </section>
+
+  <!-- PWD -->
+  <section id="pwd">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Command</span>
+      <h2><code>pwd</code>: naan enga irukken?</h2>
+      <p class="muted"><b>p</b>rint <b>w</b>orking <b>d</b>irectory. Ovvoru session start-laiyum mudhalla idhu.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>pwd</code></td><td>Current folder-oda full path kaattum</td></tr>
+        <tr><td><code>pwd -P</code></td><td>Shortcut (symlink) irundha, unmaiyaana physical path kaattum</td></tr>
+        <tr><td><code>pwd -L</code></td><td>Shortcut path-aavae kaattum (default behaviour)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><pre><span class="p">$ </span>pwd
+/home/vijayakumar/Desktop/Learn_Claude_Code</pre></div>
+  </section>
+
+  <!-- LS -->
+  <section id="ls">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Command</span>
+      <h2><code>ls</code>: inga enna irukku?</h2>
+      <p class="muted"><b>l</b>i<b>s</b>t. Options-ah combine pannalaam: <code>-l -a -h</code> = <code>-lah</code>.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>ls</code></td><td>Current folder-la irukkura files/folders names</td></tr>
+        <tr><td><code>ls -l</code></td><td><b>Long</b> format: permissions, owner, size, date</td></tr>
+        <tr><td><code>ls -a</code></td><td><b>All</b>: hidden files-um (<code>.</code>-la start aagura <code>.git</code>, <code>.env</code>)</td></tr>
+        <tr><td><code>ls -la</code></td><td>Long + hidden. Most used combo</td></tr>
+        <tr><td><code>ls -lh</code></td><td><b>Human</b> readable size: <code>50K</code>, <code>2.1M</code> (bytes illa)</td></tr>
+        <tr><td><code>ls -lt</code></td><td><b>Time</b> sort: recent-ah maathuna file mela. AI edit-ku apram super useful</td></tr>
+        <tr><td><code>ls -ltr</code></td><td>Time sort, <b>reverse</b>: pazhaiyadhu mela, puthusu keezha</td></tr>
+        <tr><td><code>ls -lS</code></td><td><b>Size</b> sort: periya file mela</td></tr>
+        <tr><td><code>ls -R</code></td><td><b>Recursive</b>: ella sub-folders-kulla-um list</td></tr>
+        <tr><td><code>ls -1</code></td><td>Ovvoru line-la oru file</td></tr>
+        <tr><td><code>ls -d */</code></td><td>Folders mattum</td></tr>
+        <tr><td><code>ls todo-api</code></td><td>Vera folder-ah, ulla pogaama paakuradhu</td></tr>
+        <tr><td><code>ls *.md</code></td><td>Pattern: <code>.md</code>-la mudiyura files mattum (<code>*</code> = wildcard)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><pre><span class="p">$ </span>ls -lah
+total 68K
+drwxrwxr-x 2 vijayakumar vijayakumar 4.0K Oct 13 15:49 .
+-rw-rw-r-- 1 vijayakumar vijayakumar 1.2K Oct 13 13:05 CLAUDE.md
+-rw-rw-r-- 1 vijayakumar vijayakumar 2.6K Oct 13 13:05 LEARNING_PLAN.md
+<span class="c"># d = directory (folder),  - = file,  rw- = read/write permission</span></pre></div>
+  </section>
+
+  <!-- CD -->
+  <section id="cd">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Command</span>
+      <h2><code>cd</code>: vera folder-ku po</h2>
+      <p class="muted"><b>c</b>hange <b>d</b>irectory. Output edhuvum varaadhu. Adhanaala <code>pwd</code> vachu confirm pannunga.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>cd todo-api</code></td><td>Current folder-kulla irukkura <code>todo-api</code>-ku po</td></tr>
+        <tr><td><code>cd ..</code></td><td>Oru level mela</td></tr>
+        <tr><td><code>cd ../..</code></td><td>Rendu level mela</td></tr>
+        <tr><td><code>cd</code> / <code>cd ~</code></td><td>Home folder-ku direct-ah</td></tr>
+        <tr><td><code>cd -</code></td><td>Mundhi irundha folder-ku thirumba (TV remote-oda "previous channel" maadhiri)</td></tr>
+        <tr><td><code>cd /</code></td><td>System root-ku</td></tr>
+        <tr><td><code>cd ~/Desktop/Learn_Claude_Code</code></td><td>Absolute path vachu enga irundhaalum direct-ah</td></tr>
+        <tr><td><code>cd "My Folder"</code></td><td>Name-la space irundha quotes podanum</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><strong>Tab key:</strong> <code>cd Lea</code> type panni <kbd>Tab</kbd> adinga. Full name auto-complete aagum. Typo varaadhu, time save.</div>
+  </section>
+
+  <!-- MKDIR -->
+  <section id="mkdir">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Command</span>
+      <h2><code>mkdir</code>: puthu folder</h2>
+      <p class="muted"><b>m</b>a<b>k</b>e <b>dir</b>ectory.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>mkdir todo-api</code></td><td>Oru folder create</td></tr>
+        <tr><td><code>mkdir src tests docs</code></td><td>Orey nerathula pala folders</td></tr>
+        <tr><td><code>mkdir -p src/routes/v1</code></td><td><b>Parents</b>: nadula irukkura folders illana adhaiyum create pannum. Already irundha error varaadhu</td></tr>
+        <tr><td><code>mkdir -v logs</code></td><td><b>Verbose</b>: "created directory 'logs'" nu sollum</td></tr>
+        <tr><td><code>mkdir -pv a/b/c</code></td><td>Rendum combine</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>mkdir src/routes/v1
+mkdir: cannot create directory: No such file or directory</pre><p><code>src</code> illa, adhanaala fail.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>mkdir -p src/routes/v1
+ls -R src</pre><p><code>-p</code> full chain-ah create pannum, apram verify.</p></div>
+    </div>
+  </section>
+
+  <!-- CAT -->
+  <section id="cat">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · Command</span>
+      <h2><code>cat</code>: file content paakuradhu</h2>
+      <p class="muted">con<b>cat</b>enate. Chinna files-ku <code>cat</code>, periya files-ku <code>less</code>/<code>head</code>/<code>tail</code>.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><code>cat CLAUDE.md</code></td><td>Full content print</td></tr>
+        <tr><td><code>cat -n CLAUDE.md</code></td><td>Line <b>numbers</b>-oda. AI "line 12-la bug" nu sonna check panna</td></tr>
+        <tr><td><code>cat a.txt b.txt</code></td><td>Rendu file-um onna serthu print</td></tr>
+        <tr><td><code>head file</code></td><td>Mudhal 10 lines mattum</td></tr>
+        <tr><td><code>head -n 20 file</code></td><td>Mudhal 20 lines</td></tr>
+        <tr><td><code>tail file</code></td><td>Kadaisi 10 lines</td></tr>
+        <tr><td><code>tail -f app.log</code></td><td><b>Follow</b>: puthu lines vara vara live-ah kaattum (server logs). <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop</td></tr>
+        <tr><td><code>less file</code></td><td>Page by page scroll. <kbd>q</kbd> to quit, <kbd>/</kbd> to search</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Danger</span><pre>cat > CLAUDE.md</pre><p><code>&gt;</code> file-ah <b>overwrite</b> pannidum. Ulla irundhadhu ellam pochu.</p></div>
+      <div class="good"><span class="tag">Safe</span><pre>cat CLAUDE.md
+less ai-coding-path.html</pre><p>Read mattum. Edhuvum maaradhu.</p></div>
+    </div>
+  </section>
+
+  <!-- SHORTCUTS -->
+  <section id="keys">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Bonus</span>
+      <h2>Terminal shortcuts</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Key / Command</th><th>Enna pannum</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>Tab</kbd></td><td>Auto-complete. Rendu thadava adichaa options list</td></tr>
+        <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Munnadi type panna commands</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Odura command-ah stop (server, <code>tail -f</code>)</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd> / <code>clear</code></td><td>Screen clear</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>Pazhaiya commands-la search</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd> / <kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Line start / end-ku cursor</td></tr>
+        <tr><td><code>history</code></td><td>Ella pazhaiya commands list</td></tr>
+        <tr><td><code>man ls</code> / <code>ls --help</code></td><td>Endha command-kkum full options manual. <kbd>q</kbd> to quit</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Your turn</span>
+      <h2>Practice: terminal-la type pannunga</h2>
+      <p class="muted">Copy-paste pannaama type pannunga, appo dhaan kai-la nikkum. Mudinjadhum tick pannunga.</p>
+      <span class="counter" id="count">0 / 10 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span><code>cd ~/Desktop/Learn_Claude_Code</code>: practice folder-ku po</span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span><code>pwd</code>: correct-ana idam-la irukkingalaa nu confirm</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span><code>ls -la</code>: hidden files-oda list. <code>.</code> and <code>..</code> paarunga</span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span><code>cat -n LEARNING_PLAN.md</code>: line numbers-oda padinga</span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span><code>mkdir -pv todo-api/src todo-api/tests</code>: practice project folders</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span><code>ls -R todo-api</code>: create aachaa nu verify</span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span><code>cd todo-api/src</code> apram <code>pwd</code>: ulla poyaachaa?</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span><code>cd ../..</code> apram <code>pwd</code>: rendu level mela vandhaachaa?</span></label></li>
+      <li><input type="checkbox" id="s9"><label for="s9"><span class="n"></span><span><code>cd ~</code> apram <code>cd -</code>: home poyi thirumba vandhaachaa?</span></label></li>
+      <li><input type="checkbox" id="s10"><label for="s10"><span class="n"></span><span><code>ls -lt</code>: <code>todo-api</code> mela irukkaa? (recent-ah create pannadhu)</span></label></li>
+    </ol>
+    <div class="note">Mudinjadhum Claude Code chat-la kadaisi <code>pwd</code> and <code>ls -lt</code> output-ah paste pannunga. Naan check panren.</div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Check</span>
+      <h2>Quick quiz</h2>
+      <p class="muted">Mudhalla neengalae yosichu answer sollunga, apram click panni paarunga.</p>
+    </div>
+    <div class="stack">
+      <details><summary>1. <code>.env</code> file irukkaa nu <code>ls</code> vachu eppadi paakuradhu?</summary><p><code>ls -a</code> (or <code>ls -la</code>). <code>.</code>-la start aagura files hidden. <code>-a</code> illama theriyaadhu.</p></details>
+      <details><summary>2. <code>mkdir a/b/c</code> error kudukudhu. Yen? Fix enna?</summary><p><code>a</code>, <code>a/b</code> innum illa. <code>mkdir -p a/b/c</code> nadula irukkura folders-aiyum create pannum.</p></details>
+      <details><summary>3. AI 10 files edit pannuchu. Edha files maaruchu nu terminal-la quick-ah eppadi paakuradhu?</summary><p><code>ls -lt</code>: recent-ah maathuna files mela varum. (Next lesson-la <code>git status</code> / <code>git diff</code> idhai innum better-ah pannum.)</p></details>
+      <details><summary>4. <code>cd ..</code> vs <code>cd -</code> difference?</summary><p><code>cd ..</code> = parent folder (oru level mela). <code>cd -</code> = mundhi irundha folder (enga irundhaalum).</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"AI agents terminal-la dhaan work pannum. Naan ovvoru change-kkum Check → Act → Verify follow panren: <code>pwd</code>, <code>ls -lt</code>, <code>cat</code> vachu AI sonnadhai blind-ah nambaama verify panren."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson01-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){
+      b.closest("li").classList.toggle("done", b.checked);
+      if (b.checked) done++;
+    });
+    count.textContent = done + " / " + boxes.length + " done";
+  }
+
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>

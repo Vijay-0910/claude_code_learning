@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Coding Master Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a field-notebook — one reading column, sticky level rail, each level a "chapter" with checklist margins */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-inline:16px;padding-block:0 80px}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3.1rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,4vw,2rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.2rem;font-weight:700}
+h4{font-size:1rem;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+/* Header */
+header.top{padding-block:40px 24px;display:flex;flex-direction:column;gap:14px}
+.lede{font-size:1.08rem;color:var(--muted);max-width:62ch}
+.progress{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.progress-row{display:flex;justify-content:space-between;font-size:.9rem;font-variant-numeric:tabular-nums}
+.bar{height:10px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s ease}
+.how{display:flex;flex-wrap:wrap;gap:8px;font-size:.85rem}
+.how span{background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:4px 12px}
+
+/* Rail */
+nav.rail{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding:10px 16px}
+nav.rail ul{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.rail a{display:block;white-space:nowrap;text-decoration:none;color:var(--fg);font-size:.85rem;padding:5px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-variant-numeric:tabular-nums}
+nav.rail a.active{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+nav.rail a .n{color:var(--muted);margin-left:4px;font-size:.78rem}
+nav.rail a.active .n{color:var(--bg);opacity:.8}
+
+section.chap{padding-top:56px;display:flex;flex-direction:column;gap:20px;scroll-margin-top:60px}
+.chap-head{display:flex;flex-direction:column;gap:8px;border-top:2px solid var(--fg);padding-top:14px}
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why b{font-family:var(--display)}
+
+.lesson{display:flex;flex-direction:column;gap:10px}
+.lesson + .lesson{border-top:1px dashed var(--line);padding-top:18px}
+
+/* code */
+.code{position:relative;background:var(--code-bg);color:var(--code-fg);border-radius:10px;min-width:0}
+.code pre{margin:0;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:.84rem;line-height:1.6}
+.code .c{color:var(--code-dim)}
+.copy{position:absolute;top:8px;right:8px;font:600 .72rem var(--mono);background:transparent;color:var(--code-dim);border:1px solid #3a4a43;border-radius:6px;padding:3px 8px;cursor:pointer}
+.copy:hover{color:var(--code-fg)}
+
+/* wrong/right */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vs > div{border-radius:10px;padding:12px 14px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font:600 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;white-space:pre-wrap;font-family:var(--mono);font-size:.82rem;line-height:1.55}
+@media (max-width:620px){.vs{grid-template-columns:1fr}}
+
+/* checklist */
+.check{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 6px}
+.check h4{padding:10px 10px 4px}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;cursor:pointer}
+.check label:hover{background:var(--sunk)}
+.check input{margin-top:5px;width:17px;height:17px;accent-color:var(--accent);flex:none}
+.check input:checked + span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+
+.task{border-left:3px solid var(--accent);padding:4px 0 4px 14px}
+.interview{font-style:italic;border:1px solid var(--line);border-radius:10px;padding:12px 16px;background:var(--surface)}
+.interview::before{content:"Interview-la sollunga";display:block;font:600 .72rem var(--mono);font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+
+details.quiz{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+details.quiz summary{cursor:pointer;padding:10px 14px;font-weight:600;list-style-position:inside}
+details.quiz .a{padding:0 14px 12px;color:var(--muted)}
+.quizset{display:flex;flex-direction:column;gap:8px}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:560px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--display);background:var(--sunk);font-weight:700}
+tr:last-child td{border-bottom:none}
+td code{white-space:nowrap}
+
+/* loop diagram */
+.loop{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-family:var(--mono);font-size:.82rem}
+.loop span{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.loop b{color:var(--accent)}
+
+/* fundamentals grid */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.fgrid > div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.fgrid .k{font:600 .72rem var(--mono);color:var(--accent)}
+
+/* flashcards */
+.fc{display:flex;flex-direction:column;gap:12px}
+.card{min-height:190px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:22px;display:flex;flex-direction:column;justify-content:center;gap:10px;cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
+.card .side{font:600 .72rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.card .txt{font-family:var(--display);font-size:1.25rem;font-weight:600}
+.card.flipped{background:var(--accent-soft);border-color:var(--accent)}
+.card.flipped .txt{font-family:var(--body);font-size:1.02rem;font-weight:400}
+.fc-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font:600 .88rem var(--body);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.fc-count{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem}
+
+ul.plain{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+footer{margin-top:60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <span class="eyebrow">Claude Code · Codex · Cursor · Gemini CLI</span>
+  <h1>AI Coding Master Path</h1>
+  <p class="lede">Beginner-la irundhu master varaikkum. Ovvoru level-layum mudhalla <b>why</b>, apram <b>how</b>, apram neengale terminal-la senju paakkura <b>practice</b>. Tools maarum, fundamentals maaraadhu.</p>
+  <div class="progress" aria-live="polite">
+    <div class="progress-row"><span>Unga progress</span><span id="pct">0 / 0</span></div>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+  <div class="how"><span>☑ Tick pannadhu indha browser-la save aagum</span><span>Quiz-ah click panni answer paarunga</span><span>Kadaisila flashcards-la revise pannunga</span></div>
+</header>
+
+<nav class="rail" aria-label="Levels">
+  <ul id="railList">
+    <li><a href="#core">Core 8</a></li>
+    <li><a href="#l0">L0 Git<span class="n" data-n="l0"></span></a></li>
+    <li><a href="#l1">L1 Basics<span class="n" data-n="l1"></span></a></li>
+    <li><a href="#l2">L2 Context<span class="n" data-n="l2"></span></a></li>
+    <li><a href="#l3">L3 Workflow<span class="n" data-n="l3"></span></a></li>
+    <li><a href="#l4">L4 Advanced<span class="n" data-n="l4"></span></a></li>
+    <li><a href="#l5">L5 Other tools<span class="n" data-n="l5"></span></a></li>
+    <li><a href="#l6">L6 Interview<span class="n" data-n="l6"></span></a></li>
+    <li><a href="#cheat">Cheat sheet</a></li>
+    <li><a href="#revise">Revise</a></li>
+  </ul>
+</nav>
+
+<!-- CORE -->
+<section class="chap" id="core">
+  <div class="chap-head"><span class="eyebrow">Start here</span><h2>8 fundamentals, ellaa tool-kkum common</h2></div>
+  <p>Interview-la "Claude/Cursor epdi use pannuveenga" nu kettaa, avanga paakkuradhu tool knowledge illa. <b>Engineering discipline.</b> Indha 8-um dhaan answer.</p>
+  <div class="fgrid">
+    <div><span class="k">1 · CONTEXT</span><b>Context dhaan king</b><span class="muted">AI-ku unga project theriyaadhu. Instructions file (CLAUDE.md / AGENTS.md / GEMINI.md / Cursor rules) vachu sollunga.</span></div>
+    <div><span class="k">2 · PROMPT</span><b>Clear, specific prompt</b><span class="muted">Goal + Location + Constraints + Done criteria.</span></div>
+    <div><span class="k">3 · PLAN</span><b>Code-ku munnaadi plan</b><span class="muted">Plan-ah correct pannuradhu free. Code-ah correct pannuradhu costly.</span></div>
+    <div><span class="k">4 · SMALL STEPS</span><b>Chinna chinna steps</b><span class="muted">Ore prompt-la full app kekkaadheenga. Chinna diff review panna easy.</span></div>
+    <div><span class="k">5 · VERIFY</span><b>Tests dhaan proof</b><span class="muted">AI "done" nu sonnaa adhu proof illa. Test / lint / run pannunga.</span></div>
+    <div><span class="k">6 · REVIEW</span><b>Ownership ungalodadhu</b><span class="muted">Ovvoru line-um padinga. Security, edge cases, fake APIs check pannunga.</span></div>
+    <div><span class="k">7 · GIT</span><b>Git = safety net</b><span class="muted">AI-ku munnaadi commit. Kettu pochunna revert.</span></div>
+    <div><span class="k">8 · CONTEXT MGMT</span><b>Session-ah fresh-ah vachukkunga</b><span class="muted">Long chat = quality drop. Puthu task-ku <code>/clear</code>.</span></div>
+  </div>
+  <div class="vs">
+    <div class="bad"><span class="tag">Vibe coding</span><p>Prompt → accept → error vandha thirumba prompt. Code padikkaradhe illa. Prototype / hackathon-ku ok.</p></div>
+    <div class="good"><span class="tag">AI-assisted engineering</span><p>AI ezhudhum, neenga design, review, verify pannureenga. Production-ku idhu dhaan correct.</p></div>
+  </div>
+</section>
+
+<!-- L0 -->
+<section class="chap" id="l0">
+  <div class="chap-head"><span class="eyebrow">Level 0 · Foundation</span><h2>Terminal + Git</h2></div>
+  <div class="why"><b>Why mudhalla idhu?</b> AI agent orey nerathula 5–10 files-ah maathum. Git illana "enna maaruchu?", "pazhaya version-ku eppadi poradhu?" rendukkum answer illa. Git theriyaama AI tools use pannuradhu brake illama car oattura maadhiri.</div>
+
+  <div class="lesson">
+    <h3>Terminal basics</h3>
+    <div class="code"><button class="copy">copy</button><pre>pwd                 <span class="c"># ippo endha folder-la irukken</span>
+ls -la              <span class="c"># folder-la enna irukku</span>
+cd ~/Desktop/Learn_Claude_Code   <span class="c"># folder maaruradhu</span>
+mkdir todo-api      <span class="c"># puthu folder</span>
+cat README.md       <span class="c"># file content paakuradhu</span></pre></div>
+  </div>
+
+  <div class="lesson">
+    <h3>Git daily cycle</h3>
+    <div class="code"><button class="copy">copy</button><pre>git init                      <span class="c"># repo start (oru vaati mattum)</span>
+git status                    <span class="c"># enna maaruchu, list</span>
+git diff                      <span class="c"># exact-ah enna lines maaruchu</span>
+git add .                     <span class="c"># ellaa changes-um stage pannu</span>
+git commit -m "add GET /todos"   <span class="c"># checkpoint save</span>
+git log --oneline             <span class="c"># history</span></pre></div>
+  </div>
+
+  <div class="lesson">
+    <h3>Undo &amp; branches (AI kooda work panna idhu romba mukkiyam)</h3>
+    <div class="code"><button class="copy">copy</button><pre>git restore .                 <span class="c"># commit pannaadha changes ellaam discard</span>
+git restore src/app.js        <span class="c"># oru file mattum discard</span>
+git checkout -b try-feature   <span class="c"># experiment-ku puthu branch</span>
+git checkout main             <span class="c"># main-ku thirumba</span>
+git branch -D try-feature     <span class="c"># experiment fail-na branch delete</span></pre></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><p>AI kitta periya change kettu, commit pannaama, kettu pochu. Ippo edhu AI maathunadhu, edhu ungaludhu nu theriyaadhu.</p></div>
+      <div class="good"><span class="tag">Right</span><p>AI-ku task kudukkuradhukku munnaadi <code>git commit</code>. Pudikkalanna <code>git restore .</code>, 2 second-la pazhaya state.</p></div>
+    </div>
+  </div>
+
+  <p class="task"><b>Practice:</b> <code>todo-api</code> folder create pannunga, <code>git init</code>, oru <code>notes.txt</code> ezhudhi commit pannunga. Apram file-ah maathi <code>git diff</code> paarunga, <code>git restore .</code> panni undo pannunga.</p>
+
+  <div class="check" data-level="l0"><h4>Checklist</h4>
+    <label><input type="checkbox" id="l0-1"><span>pwd, ls, cd, mkdir, cat use panna theriyum</span></label>
+    <label><input type="checkbox" id="l0-2"><span>git init / add / commit pannirukken</span></label>
+    <label><input type="checkbox" id="l0-3"><span>git diff vachu changes paakka theriyum</span></label>
+    <label><input type="checkbox" id="l0-4"><span>git restore vachu undo pannirukken</span></label>
+    <label><input type="checkbox" id="l0-5"><span>Branch create panni switch pannirukken</span></label>
+  </div>
+  <div class="quizset">
+    <details class="quiz"><summary>AI-ku task kudukkuradhukku munnaadi enna pannanum?</summary><p class="a"><code>git commit</code>. Clean checkpoint irundha AI enna maathunaalum <code>git diff</code>-la paakkalaam, pudikkalanna revert pannalaam.</p></details>
+    <details class="quiz"><summary><code>git status</code>-kkum <code>git diff</code>-kkum enna difference?</summary><p class="a">status: <i>endha files</i> maaruchu nu list. diff: andha files-la <i>endha lines</i> maaruchu nu exact-ah kaattum.</p></details>
+  </div>
+</section>
+
+<!-- L1 -->
+<section class="chap" id="l1">
+  <div class="chap-head"><span class="eyebrow">Level 1 · Basics</span><h2>Claude Code first session</h2></div>
+  <div class="why"><b>Why Claude Code-la start?</b> Terminal agent. Files padikkum, edit pannum, commands run pannum. Idhula kathukkiradhu Codex, Gemini CLI-kkum apdiye apply aagum, CLI agents ellaam ore concept.</div>
+
+  <div class="lesson">
+    <h3>Start &amp; first prompt</h3>
+    <div class="code"><button class="copy">copy</button><pre>cd ~/Desktop/Learn_Claude_Code/todo-api
+claude                        <span class="c"># interactive session</span>
+claude -c                     <span class="c"># kadaisi conversation continue</span>
+claude -r                     <span class="c"># pazhaya session select panni resume</span></pre></div>
+    <p>First prompt-ah simple-ah vachukkunga: <code>indha folder-la enna irukku nu explain pannu</code>. AI files-ah eppadi padikkudhu nu paarunga.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Permission modes: <code>Shift+Tab</code> press panni maathalaam</h3>
+    <div class="tbl"><table>
+      <tr><th>Mode</th><th>Enna nadakkum</th><th>Eppo use pannanum</th></tr>
+      <tr><td>Default</td><td>Ovvoru edit / command-kkum permission kekkum</td><td>Beginner, puthu codebase</td></tr>
+      <tr><td>Accept edits</td><td>File edits auto, commands-ku kekkum</td><td>Plan ok aana apram, trust irukkum podhu</td></tr>
+      <tr><td>Plan mode</td><td>Padikkum, plan pannum, edit pannaadhu</td><td>Periya feature-ku mudhal step</td></tr>
+    </table></div>
+  </div>
+
+  <div class="lesson">
+    <h3>Mukkiyamaana shortcuts &amp; commands</h3>
+    <div class="tbl"><table>
+      <tr><th>Key / Command</th><th>Enna pannum</th></tr>
+      <tr><td><code>@src/app.js</code></td><td>Specific file-ah context-la serkkum</td></tr>
+      <tr><td><code>!npm test</code></td><td>Shell command-ah direct-ah run pannum, output AI-kkum theriyum</td></tr>
+      <tr><td><code>Esc</code></td><td>AI-ah naduvula stop pannum (thappaana direction-la pona)</td></tr>
+      <tr><td><code>Esc Esc</code></td><td>Pazhaya message-ku poyi edit / rewind pannalaam</td></tr>
+      <tr><td><code>/clear</code></td><td>Conversation clear, fresh start</td></tr>
+      <tr><td><code>/compact</code></td><td>Long conversation-ah summary pannum, context save</td></tr>
+      <tr><td><code>/init</code></td><td>Project scan panni CLAUDE.md create pannum</td></tr>
+      <tr><td><code>/model</code></td><td>Model maathalaam</td></tr>
+      <tr><td><code>/help</code></td><td>Ellaa commands-um</td></tr>
+    </table></div>
+  </div>
+
+  <p class="task"><b>Practice:</b> <code>todo-api</code>-la <code>claude</code> start pannunga. Prompt: <code>Node.js Express setup pannu, GET /todos endpoint (in-memory array), vitest + supertest test ezhudhu, npm test run pannu.</code> Mudinjadhum <code>git diff</code> paathu commit pannunga.</p>
+
+  <div class="check" data-level="l1"><h4>Checklist</h4>
+    <label><input type="checkbox" id="l1-1"><span>claude start panni first prompt kuduthen</span></label>
+    <label><input type="checkbox" id="l1-2"><span>Shift+Tab vachu 3 modes-um try panninen</span></label>
+    <label><input type="checkbox" id="l1-3"><span>@file mention use panninen</span></label>
+    <label><input type="checkbox" id="l1-4"><span>Esc vachu AI-ah naduvula stop panninen</span></label>
+    <label><input type="checkbox" id="l1-5"><span>GET /todos + test build panni commit panninen</span></label>
+  </div>
+  <div class="quizset">
+    <details class="quiz"><summary>Full repo-va dump pannaama oru file-ah mattum eppadi point pannuradhu?</summary><p class="a"><code>@path/to/file</code> mention. Context chinnadha irundha AI focus-ah irukkum.</p></details>
+    <details class="quiz"><summary>AI thappaana direction-la poyittu irukku. Enna pannuveenga?</summary><p class="a"><code>Esc</code> press panni stop, correct direction sollunga. Mudiyura varaikkum wait panna vendaam, wasted time + messy changes.</p></details>
+  </div>
+  <p class="interview">"Naan Claude Code-la default mode-la start pannuven, trust build aana apram accept-edits. Specific files-ah @mention panni context-ah focused-ah vachukkuven."</p>
+</section>
+
+<!-- L2 -->
+<section class="chap" id="l2">
+  <div class="chap-head"><span class="eyebrow">Level 2 · Context</span><h2>CLAUDE.md &amp; nalla prompts</h2></div>
+  <div class="why"><b>Why?</b> AI-oda output quality = neenga kudukkura context quality. Ovvoru session-um AI-ku memory illama start aagum. Instructions file dhaan adhoda "onboarding document".</div>
+
+  <div class="lesson">
+    <h3>Context window na enna?</h3>
+    <p>AI orey nerathula "nyaabagam" vachukka mudiyura text alavu. Unga messages, files, command outputs ellaam idhula fill aagum. Fill aaga aaga pazhaya vishayangal blur aagum, quality kuraiyum. Adhunaala dhaan: <b>orey session = orey task</b>, mudinjadhum <code>/clear</code>.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Nalla CLAUDE.md eppadi irukkanum</h3>
+    <div class="code"><button class="copy">copy</button><pre># Todo API
+
+## Commands
+- Install: npm install
+- Test: npm test
+- Dev: npm run dev
+
+## Structure
+- src/routes/   → Express routes
+- src/services/ → business logic
+- tests/        → vitest + supertest
+
+## Rules
+- Puthu dependency add pannuradhukku munnaadi kelu
+- Ovvoru endpoint-kkum test kandippa
+- Error format: { "error": "message" }
+- console.log commit pannaadhe</pre></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><p>500 lines CLAUDE.md, full documentation copy-paste. AI-ku edhu mukkiyam nu theriyaadhu, context waste.</p></div>
+      <div class="good"><span class="tag">Right</span><p>Short &amp; specific: commands, structure, rules. AI repeat-ah thappu pannuradha paathaa, adha oru line rule-ah add pannunga.</p></div>
+    </div>
+    <p class="muted">Locations: <code>./CLAUDE.md</code> (project, team kooda git-la share), <code>~/.claude/CLAUDE.md</code> (ungal personal, ellaa projects-kkum). <code>/memory</code> vachu edit pannalaam.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Prompt formula: Goal + Location + Constraints + Done</h3>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>login fix pannu</pre></div>
+      <div class="good"><span class="tag">Right</span><pre>Goal: email invalid-na submit disable aaganum.
+Location: src/auth/LoginForm.tsx
+Constraints: src/utils/validators.ts-la
+  irukkura validator reuse pannu.
+  Puthu library vendaam.
+Done: LoginForm.test.tsx-la test,
+  npm test pass aaganum.</pre></div>
+    </div>
+    <p>Vague prompt → AI guess pannum → guess = hallucination, thevai illadha changes, over-engineering.</p>
+  </div>
+
+  <p class="task"><b>Practice:</b> <code>/init</code> run panni CLAUDE.md create pannunga, mela irukkura maadhiri rules add pannunga. <code>/clear</code> panni "POST /todos add pannu" nu sollunga. AI unga rules-ah (test, error format) follow pannudha nu check pannunga.</p>
+
+  <div class="check" data-level="l2"><h4>Checklist</h4>
+    <label><input type="checkbox" id="l2-1"><span>Context window concept purinjudhu</span></label>
+    <label><input type="checkbox" id="l2-2"><span>/init vachu CLAUDE.md create panni edit panninen</span></label>
+    <label><input type="checkbox" id="l2-3"><span>AI CLAUDE.md rules follow pannuradha verify panninen</span></label>
+    <label><input type="checkbox" id="l2-4"><span>Vague vs clear prompt, rendum try panni compare panninen</span></label>
+  </div>
+  <div class="quizset">
+    <details class="quiz"><summary>Long conversation-la AI quality yen kuraiyudhu?</summary><p class="a">Context window fill aagudhu. Pazhaya, thevai illadha info naduvula mukkiyamaana info blur aagudhu. Fix: puthu task-ku <code>/clear</code>, illana <code>/compact</code>.</p></details>
+    <details class="quiz"><summary>CLAUDE.md-la enna podanum, enna podakoodaadhu?</summary><p class="a">Podanum: commands, structure, rules, conventions. Podakoodaadhu: secrets/API keys, full docs, code-la already theriyura vishayam.</p></details>
+  </div>
+  <p class="interview">"Ovvoru project-kkum instructions file maintain pannuven: build/test commands, conventions, rules. AI repeat-ah oru mistake pannuna, adha rule-ah add pannuven. Adhunaala team full-um consistent output kidaikkum."</p>
+</section>
+
+<!-- L3 -->
+<section class="chap" id="l3">
+  <div class="chap-head"><span class="eyebrow">Level 3 · Workflow</span><h2>Plan → Small steps → Verify → Review</h2></div>
+  <div class="why"><b>Why?</b> Idhu dhaan vibe coding-ah engineering-ah maathura level. Interview-la "unga workflow enna?" nu kekkum podhu idhu dhaan answer.</div>
+
+  <div class="lesson">
+    <h3>Step 1: Plan mode</h3>
+    <div class="code"><button class="copy">copy</button><pre><span class="c"># Shift+Tab → plan mode</span>
+PUT /todos/:id and DELETE /todos/:id add pannanum.
+Existing code-ah padichu plan kudu: endha files maarum,
+enna tests venum, edge cases enna. Code ezhudhaadhe.</pre></div>
+    <p>Plan-ah padinga. Thappu irundha appove sollunga: "validation-ah service layer-la vai, route-la vendaam". Plan ok aanadhum implement panna sollunga.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Step 2: Chinna steps + commit</h3>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>Full todo app build pannu with auth,
+DB, frontend, deployment</pre></div>
+      <div class="good"><span class="tag">Right</span><pre>Plan-la step 1 mattum: PUT /todos/:id
++ test. npm test run pannu. Niruthu.</pre></div>
+    </div>
+    <p>Ovvoru step mudinjadhum: <code>git diff</code> → review → <code>npm test</code> → <code>git commit</code>. Apram dhaan next step.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Step 3: Verification loop (agentic loop)</h3>
+    <div class="loop"><span>Read code</span><b>→</b><span>Plan</span><b>→</b><span>Edit</span><b>→</b><span>Run tests</span><b>→</b><span>Fail? Fix</span><b>↺</b><span>Pass ✓</span></div>
+    <p>Test command CLAUDE.md-la irundha AI thaanaave indha loop-ah oattum. <b>Test-first bug fix</b> dhaan best pattern:</p>
+    <div class="code"><button class="copy">copy</button><pre>Empty title-oda POST /todos panna 400 varanum, aana 201 varudhu.
+1. Mudhalla idha reproduce pannura failing test ezhudhu
+2. Test fail aagudha nu run panni confirm pannu
+3. Apram fix pannu
+4. npm test, ellaa tests-um pass aaganum</pre></div>
+  </div>
+
+  <div class="lesson">
+    <h3>Step 4: Review checklist (ovvoru diff-kkum)</h3>
+    <ul class="plain">
+      <li><b>Hallucination:</b> illadha function, library, API method use pannirukka?</li>
+      <li><b>Security:</b> hardcoded secrets, SQL injection, input validation, auth check miss?</li>
+      <li><b>Edge cases:</b> empty input, illadha id, null, periya data?</li>
+      <li><b>Duplication:</b> existing util irukkum podhu puthusa ezhudhirukka?</li>
+      <li><b>Scope creep:</b> kekkaadha files-ah maathirukka?</li>
+      <li><b>Tests:</b> test real-ah behaviour-ah check pannudha, illa summa pass aagura maadhiri ezhudhirukka?</li>
+    </ul>
+    <p>Puriyaadha line irundha: <code>Line 23 enna pannudhu, yen indha approach?</code> nu kelunga. <b>Puriyaadha code-ah commit pannaadheenga.</b></p>
+  </div>
+
+  <p class="task"><b>Practice:</b> PUT + DELETE endpoints-ah plan mode → step-by-step → test → review → commit cycle-la build pannunga. Apram oru bug-ah neengale purposely podunga, test-first fix pannunga.</p>
+
+  <div class="check" data-level="l3"><h4>Checklist</h4>
+    <label><input type="checkbox" id="l3-1"><span>Plan mode-la plan vaangi correct panninen</span></label>
+    <label><input type="checkbox" id="l3-2"><span>Feature-ah chinna steps-ah, ovvoru step-um commit</span></label>
+    <label><input type="checkbox" id="l3-3"><span>Test-first bug fix panninen</span></label>
+    <label><input type="checkbox" id="l3-4"><span>Review checklist vachu oru diff-ah review panninen</span></label>
+    <label><input type="checkbox" id="l3-5"><span>AI code-la oru problem kandupidichen 😄</span></label>
+  </div>
+  <div class="quizset">
+    <details class="quiz"><summary>Yen code-ku munnaadi plan?</summary><p class="a">Thappaana design-ah plan stage-la pudikkiradhu oru message. Code ezhudhina apram pudichaa, rewrite + review + test ellaam waste.</p></details>
+    <details class="quiz"><summary>Bug fix-ku yen failing test mudhalla?</summary><p class="a">Bug reproduce aagudha nu proof. Fix work aagudha nu proof. Future-la thirumba vandha regression-ah pudikkum.</p></details>
+  </div>
+  <p class="interview">"Periya feature-na plan mode-la plan vaangi review pannuven. Chinna steps-ah implement, ovvoru step-um tests run panni commit. Bug-na mudhalla failing test. Ovvoru diff-um security, edge cases-ku review pannuven."</p>
+</section>
+
+<!-- L4 -->
+<section class="chap" id="l4">
+  <div class="chap-head"><span class="eyebrow">Level 4 · Advanced</span><h2>Automation: commands, hooks, MCP, subagents</h2></div>
+  <div class="why"><b>Why?</b> Basics-la AI-ah use pannureenga. Advanced-la AI-ah <i>customize</i> pannureenga: repeat aagura work-ah automate, external tools connect, parallel work. Senior level interview-la idhu kekkum.</div>
+
+  <div class="lesson">
+    <h3>Custom slash commands / skills</h3>
+    <p>Adikkadi type pannura prompt-ah oru command-ah save pannunga.</p>
+    <div class="code"><button class="copy">copy</button><pre><span class="c"># .claude/commands/review.md</span>
+Current git diff-ah review pannu:
+- Security issues
+- Missing tests
+- Edge cases
+Ovvoru issue-kkum file:line kudu.</pre></div>
+    <p>Ippo <code>/review</code> type panna podhum. Folder-oda periya workflows-ku <code>.claude/skills/&lt;name&gt;/SKILL.md</code> (skills). Team-oda git-la share pannalaam.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Hooks: AI enna pannaalum auto-va nadakkanum</h3>
+    <p>Hooks = specific event-la <b>guaranteed</b>-ah run aagura shell command. CLAUDE.md-la "format pannu" nu sonnaa AI maranthudalaam, hook maraakkaadhu.</p>
+    <div class="code"><button class="copy">copy</button><pre><span class="c">// .claude/settings.json — file edit pannadhum prettier run</span>
+{
+  "hooks": {
+    "PostToolUse": [{
+      "matcher": "Edit|Write",
+      "hooks": [{ "type": "command", "command": "npx prettier --write ." }]
+    }]
+  }
+}</pre></div>
+    <p class="muted">Events: <code>PreToolUse</code> (block pannalaam), <code>PostToolUse</code>, <code>Stop</code>, <code>UserPromptSubmit</code>... <code>/hooks</code> vachu paakkalaam.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>MCP: AI-ah external tools kooda connect</h3>
+    <p>Model Context Protocol: GitHub, database, browser, Figma, Slack maadhiri tools-ah AI use panna oru <b>standard</b>. Claude Code, Codex, Cursor, Gemini CLI ellaam support pannum. Oru MCP server ezhudhina ellaa tool-layum work aagum.</p>
+    <div class="code"><button class="copy">copy</button><pre>claude mcp add &lt;name&gt; -- &lt;command to start server&gt;
+claude mcp list
+<span class="c"># session-kulla: /mcp</span></pre></div>
+    <p class="muted">⚠ Trust pannura MCP servers mattum install pannunga. Adhu unga data, credentials-ah access pannalaam.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Subagents: focused helpers</h3>
+    <p>Subagent = thani context-oda oru helper AI. Periya search / review-ah adhu kitta kuduthaa, main conversation-oda context clean-ah irukkum.</p>
+    <div class="code"><button class="copy">copy</button><pre><span class="c"># .claude/agents/test-writer.md</span>
+---
+name: test-writer
+description: Puthu code-ku vitest tests ezhudha use pannu
+---
+Nee test specialist. Edge cases-ku mukkiyathuvam kudu...</pre></div>
+    <p class="muted"><code>/agents</code> vachu create / manage pannalaam.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Git worktrees: parallel tasks</h3>
+    <div class="code"><button class="copy">copy</button><pre>git worktree add ../todo-auth -b feature/auth
+cd ../todo-auth &amp;&amp; claude     <span class="c"># idhu oru terminal</span>
+<span class="c"># innoru terminal-la main folder-la vera task</span>
+git worktree remove ../todo-auth   <span class="c"># mudinjadhum</span></pre></div>
+    <p>Rendu AI sessions orey files-ah maathi conflict aagaadhu.</p>
+  </div>
+
+  <div class="lesson">
+    <h3>Headless mode: scripts &amp; CI</h3>
+    <div class="code"><button class="copy">copy</button><pre>claude -p "src/ folder-la TODO comments list pannu"
+git diff | claude -p "indha diff-ku commit message ezhudhu"</pre></div>
+  </div>
+
+  <div class="check" data-level="l4"><h4>Checklist</h4>
+    <label><input type="checkbox" id="l4-1"><span>Oru custom slash command create panninen</span></label>
+    <label><input type="checkbox" id="l4-2"><span>Oru hook set panni work aagudha nu paathen</span></label>
+    <label><input type="checkbox" id="l4-3"><span>Oru MCP server add panninen</span></label>
+    <label><input type="checkbox" id="l4-4"><span>Subagent create panni use panninen</span></label>
+    <label><input type="checkbox" id="l4-5"><span>Worktree vachu 2 tasks parallel-ah panninen</span></label>
+    <label><input type="checkbox" id="l4-6"><span>claude -p headless try panninen</span></label>
+  </div>
+  <div class="quizset">
+    <details class="quiz"><summary>CLAUDE.md rule vs Hook, enna difference?</summary><p class="a">CLAUDE.md = suggestion, AI follow pannum (most of the time). Hook = guaranteed, harness run pannum, AI-oda choice illa. "Kandippa nadakkanum" na hook.</p></details>
+    <details class="quiz"><summary>MCP yen important?</summary><p class="a">Open standard. Oru integration ezhudhina ellaa AI tools-layum work aagum. AI-ku real data (DB, GitHub issues, docs) access kidaikkum.</p></details>
+  </div>
+  <p class="interview">"Repeat aagura review-ah slash command-ah vachirukken, formatting-ku hook. GitHub-ku MCP connect panni issues-ah direct-ah padikka vaippen. Parallel features-ku git worktrees."</p>
+</section>
+
+<!-- L5 -->
+<section class="chap" id="l5">
+  <div class="chap-head"><span class="eyebrow">Level 5 · Same fundamentals, vera tools</span><h2>Codex, Cursor, Gemini CLI</h2></div>
+  <div class="why"><b>Why?</b> Company-ku company tool maarum. "Endha tool kuduthaalum oru naal-la pick panniduven, yenna fundamentals ore maadhiri" nu solla, moonaiyum oru vaati use pannirukkanum.</div>
+
+  <div class="tbl"><table>
+    <tr><th>Concept</th><th>Claude Code</th><th>Codex CLI</th><th>Cursor</th><th>Gemini CLI</th></tr>
+    <tr><td>Type</td><td>Terminal agent</td><td>Terminal + cloud agent</td><td>AI IDE (VS Code fork)</td><td>Terminal agent</td></tr>
+    <tr><td>Start</td><td><code>claude</code></td><td><code>codex</code></td><td><code>cursor .</code></td><td><code>gemini</code></td></tr>
+    <tr><td>Instructions file</td><td><code>CLAUDE.md</code></td><td><code>AGENTS.md</code></td><td><code>.cursor/rules/</code>, <code>AGENTS.md</code></td><td><code>GEMINI.md</code></td></tr>
+    <tr><td>Generate file</td><td><code>/init</code></td><td><code>/init</code></td><td>Settings → Rules</td><td><code>/init</code></td></tr>
+    <tr><td>File mention</td><td><code>@file</code></td><td><code>@file</code></td><td><code>@file</code></td><td><code>@file</code></td></tr>
+    <tr><td>Agent mode</td><td>Default</td><td>Default</td><td><code>Ctrl+I</code></td><td>Default</td></tr>
+    <tr><td>Headless</td><td><code>claude -p</code></td><td><code>codex exec</code></td><td>Background agents</td><td><code>gemini -p</code></td></tr>
+    <tr><td>MCP</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+  </table></div>
+
+  <div class="lesson">
+    <h3>Cursor specific</h3>
+    <ul class="plain">
+      <li><code>Tab</code>: AI autocomplete, type pannum podhe suggestion</li>
+      <li><code>Ctrl+K</code>: select panna code-ah inline edit</li>
+      <li><code>Ctrl+L</code>: chat, <code>Ctrl+I</code>: agent (multi-file edits)</li>
+      <li>Diff-ah visual-ah accept / reject panna easy. Review-ku idhu Cursor-oda plus.</li>
+    </ul>
+  </div>
+
+  <div class="lesson">
+    <h3>Setup</h3>
+    <div class="code"><button class="copy">copy</button><pre>npm install -g @google/gemini-cli   <span class="c"># Gemini CLI</span>
+<span class="c"># Codex, Cursor unga system-la already install aagi irukku</span>
+cp CLAUDE.md AGENTS.md               <span class="c"># ore rules, Codex/Cursor-kkum</span>
+cp CLAUDE.md GEMINI.md</pre></div>
+  </div>
+
+  <p class="task"><b>Practice:</b> <code>GET /todos?done=true</code> filter feature-ah 3 branches-la (<code>try-claude</code>, <code>try-codex</code>, <code>try-cursor</code>) adhe prompt-oda pannunga. Compare: plan quality, code quality, rules follow pannucha, tests ezhudhucha. Notes ezhudhi vachukkunga, interview-la idhu real experience.</p>
+
+  <div class="check" data-level="l5"><h4>Checklist</h4>
+    <label><input type="checkbox" id="l5-1"><span>Codex-la AGENTS.md vachu oru feature panninen</span></label>
+    <label><input type="checkbox" id="l5-2"><span>Cursor-la Tab, Ctrl+K, Ctrl+I moonum try panninen</span></label>
+    <label><input type="checkbox" id="l5-3"><span>Gemini CLI install panni try panninen</span></label>
+    <label><input type="checkbox" id="l5-4"><span>Same task 3 tools-la compare panni notes ezhudhinen</span></label>
+  </div>
+  <div class="quizset">
+    <details class="quiz"><summary>Puthu company Cursor use pannudhu, neenga Claude Code mattum use pannirukeenga. Enna solluveenga?</summary><p class="a">"Fundamentals ore maadhiri: context file (rules / AGENTS.md), plan, chinna steps, tests vachu verify, review, git. Cursor-la shortcuts mattum dhaan puthusu, oru naal-la pick panniduven."</p></details>
+  </div>
+</section>
+
+<!-- L6 -->
+<section class="chap" id="l6">
+  <div class="chap-head"><span class="eyebrow">Level 6 · Interview prep</span><h2>Kekkura questions &amp; answers</h2></div>
+  <div class="why"><b>Strategy:</b> Theory mattum pesaadheenga. Ovvoru answer-layum "naan idha pannen, idhu nadandhuchu" nu oru real example. Level 1–5 practice dhaan andha examples.</div>
+
+  <div class="quizset">
+    <details class="quiz"><summary>Unga AI coding workflow-ah explain pannunga.</summary><p class="a">"Project-ku instructions file set pannuven: commands, conventions. Periya task-na plan mode-la plan vaangi review. Chinna steps-ah implement, ovvoru step tests run panni commit. AI code-ah line-by-line review pannuven, especially security, edge cases. Prototype-ku speed, production-ku correctness."</p></details>
+    <details class="quiz"><summary>Vibe coding pathi enna nenaikkireenga?</summary><p class="a">"Prototypes, ideas validate panna super. Aana production-la code padikkaama accept panna tech debt, security bugs varum. Naan AI-assisted engineering pannuven: AI ezhudhum, naan own pannuven."</p></details>
+    <details class="quiz"><summary>AI hallucinate pannuna eppadi handle pannuveenga?</summary><p class="a">"Tests dhaan first defense: illadha API use pannuna build/test fail aagum. Review-la unfamiliar library/method paatha docs check pannuven. Context-ah nalla kuduthaa (relevant files, rules) hallucination kuraiyum."</p></details>
+    <details class="quiz"><summary>AI generated code-oda security-ah eppadi ensure pannuveenga?</summary><p class="a">"Review checklist: secrets, input validation, injection, auth. Secrets-ah eppovum env-la, instructions file-la 'no hardcoded secrets' rule. CI-la lint + security scan. Sensitive code-ku extra manual review."</p></details>
+    <details class="quiz"><summary>AI tools use panna productivity real-ah increase aagudha?</summary><p class="a">"Boilerplate, tests, refactors, unfamiliar codebase explore pannuradhu, idhula romba fast. Complex design decisions-la naan dhaan lead. Review time-ah count pannaama 'fast' nu solla mudiyaadhu. Overall, nalla workflow irundha clear-ah gain."</p></details>
+    <details class="quiz"><summary>Team-la AI tools-ah eppadi standardize pannuveenga?</summary><p class="a">"Repo-la shared instructions file (CLAUDE.md / AGENTS.md) git-la commit, shared slash commands, hooks for formatting/lint. AI code-kkum normal PR review process. Ellaarum same rules follow pannuvaanga."</p></details>
+    <details class="quiz"><summary>Context window, MCP, agent, idhellaam enna?</summary><p class="a">Context window: AI orey nerathula paakka mudiyura text limit. MCP: AI-ah external tools (DB, GitHub) kooda connect panna open standard. Agent: plan → tool use (read/edit/run) → result paathu → repeat pannura AI loop.</p></details>
+    <details class="quiz"><summary>AI kooda work pannumbodhu neenga panna oru mistake sollunga.</summary><p class="a">Unga sondha story ready pannunga. Example: "Mudhalla ore prompt-la periya feature kettein, 15 files maaruchu, review panna mudiyala. Ippo plan + chinna steps + per-step commit." Mistake + learning = strong answer.</p></details>
+  </div>
+
+  <div class="check" data-level="l6"><h4>Checklist</h4>
+    <label><input type="checkbox" id="l6-1"><span>Workflow-ah 2 nimishathula sollura alavukku practice panninen</span></label>
+    <label><input type="checkbox" id="l6-2"><span>2 real examples (en project-la irundhu) ready</span></label>
+    <label><input type="checkbox" id="l6-3"><span>Oru "mistake + learning" story ready</span></label>
+    <label><input type="checkbox" id="l6-4"><span>Claude kitta mock interview panninen</span></label>
+  </div>
+  <p class="task"><b>Mock interview:</b> Claude Code-la sollunga: <code>Nee interviewer. AI coding tools pathi 5 questions orey orey-ah kelu. En answer-ku feedback kudu.</code></p>
+</section>
+
+<!-- CHEAT -->
+<section class="chap" id="cheat">
+  <div class="chap-head"><span class="eyebrow">Quick reference</span><h2>Cheat sheet</h2></div>
+  <div class="tbl"><table>
+    <tr><th>Situation</th><th>Enna pannanum</th></tr>
+    <tr><td>Puthu project start</td><td><code>git init</code> → <code>/init</code> → instructions file edit</td></tr>
+    <tr><td>Periya feature</td><td>Plan mode → plan review → step-by-step</td></tr>
+    <tr><td>Bug</td><td>Failing test mudhalla → fix → all tests pass</td></tr>
+    <tr><td>AI thappaana direction</td><td><code>Esc</code> → correct pannunga</td></tr>
+    <tr><td>Change pudikkala</td><td><code>git restore .</code></td></tr>
+    <tr><td>Long chat, quality drop</td><td><code>/clear</code> or <code>/compact</code></td></tr>
+    <tr><td>AI orey mistake repeat</td><td>Instructions file-la rule add</td></tr>
+    <tr><td>Kandippa nadakkanum (format, lint)</td><td>Hook</td></tr>
+    <tr><td>Adikkadi type pannura prompt</td><td>Custom slash command / skill</td></tr>
+    <tr><td>External data venum</td><td>MCP server</td></tr>
+    <tr><td>Parallel tasks</td><td>Git worktrees</td></tr>
+    <tr><td>Commit-ku munnaadi</td><td><code>git diff</code> → review checklist → <code>npm test</code></td></tr>
+  </table></div>
+  <div class="lesson">
+    <h3>Resources</h3>
+    <ul class="plain">
+      <li><a href="https://docs.claude.com/en/docs/claude-code/overview" target="_blank" rel="noopener">Claude Code official docs</a>: eppovum latest</li>
+      <li><a href="https://www.youtube.com/playlist?list=PLgeYnK9dPRsZ7tgB0BnC7Jl-UvjUGSAuX" target="_blank" rel="noopener">Claude Code Full Course in Tamil (playlist)</a></li>
+      <li><a href="https://www.youtube.com/watch?v=gv0WHhKelSE" target="_blank" rel="noopener">Claude Code best practices (Anthropic talk)</a>: auto-translate Tamil subtitles on pannunga</li>
+      <li><a href="https://www.youtube.com/watch?v=kF2WQgk1LtY" target="_blank" rel="noopener">Cursor: coding agents tutorial</a></li>
+    </ul>
+  </div>
+</section>
+
+<!-- REVISE -->
+<section class="chap" id="revise">
+  <div class="chap-head"><span class="eyebrow">Revision</span><h2>Flashcards</h2></div>
+  <p class="muted">Card-ah click panni answer paarunga. Interview-ku munnaadi 10 nimisham idha oatti paarunga.</p>
+  <div class="fc">
+    <button class="card" id="card" type="button" aria-live="polite"><span class="side" id="cardSide">Question</span><span class="txt" id="cardTxt"></span></button>
+    <div class="fc-controls">
+      <button class="btn" id="prev" type="button">← Prev</button>
+      <button class="btn primary" id="next" type="button">Next →</button>
+      <button class="btn" id="shuffle" type="button">Shuffle</button>
+      <span class="fc-count" id="fcCount"></span>
+    </div>
+  </div>
+</section>
+
+<footer>Progress indha browser-la mattum save aagum. Puthu device-la open panna thirumba tick pannanum. Unga <code>LEARNING_PLAN.md</code> file-um idhe levels-ah follow pannum.</footer>
+</div>
+
+<script>
+(function(){
+  const KEY='ai-path-progress-v1';
+  let state={};
+  try{state=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){state={}}
+  const boxes=[...document.querySelectorAll('.check input[type=checkbox]')];
+  boxes.forEach(b=>{b.checked=!!state[b.id];b.addEventListener('change',()=>{state[b.id]=b.checked;try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}update()})});
+  function update(){
+    const done=boxes.filter(b=>b.checked).length;
+    document.getElementById('pct').textContent=done+' / '+boxes.length+' done';
+    document.getElementById('bar').style.width=(boxes.length?done/boxes.length*100:0)+'%';
+    document.querySelectorAll('.check[data-level]').forEach(c=>{
+      const lv=c.dataset.level, bs=[...c.querySelectorAll('input')], d=bs.filter(b=>b.checked).length;
+      const n=document.querySelector('[data-n="'+lv+'"]'); if(n) n.textContent=d===bs.length?'✓':d+'/'+bs.length;
+    });
+  }
+  update();
+
+  document.querySelectorAll('.copy').forEach(btn=>btn.addEventListener('click',()=>{
+    const pre=btn.parentElement.querySelector('pre');
+    const text=pre.innerText.split('\n').map(l=>l.replace(/\s+#\s.*$/,'').replace(/\s+\/\/\s.*$/,'')).join('\n').trim();
+    const done=()=>{btn.textContent='copied';setTimeout(()=>btn.textContent='copy',1200)};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,()=>sel(pre))}else sel(pre);
+  }));
+  function sel(el){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}
+
+  // rail active state
+  const links=[...document.querySelectorAll('nav.rail a')];
+  const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+  function onScroll(){
+    let idx=0; secs.forEach((s,i)=>{if(s&&s.getBoundingClientRect().top<120) idx=i});
+    links.forEach((a,i)=>a.classList.toggle('active',i===idx));
+    const act=links[idx]; if(act){const ul=act.closest('ul');const l=act.offsetLeft-ul.offsetLeft;if(l<ul.scrollLeft||l>ul.scrollLeft+ul.clientWidth-act.offsetWidth)ul.scrollLeft=l-16}
+  }
+  addEventListener('scroll',onScroll,{passive:true}); onScroll();
+
+  // flashcards
+  let cards=[
+    ['Vibe coding vs AI-assisted engineering?','Vibe: code padikkaama accept. Engineering: AI ezhudhum, neenga plan, review, verify, own pannureenga.'],
+    ['Core 8 fundamentals?','Context, Clear prompt, Plan first, Small steps, Verify (tests), Review, Git, Context management.'],
+    ['Nalla prompt formula?','Goal + Location + Constraints + Done criteria.'],
+    ['Claude Code, Codex, Cursor, Gemini instructions files?','CLAUDE.md, AGENTS.md, .cursor/rules (+ AGENTS.md), GEMINI.md'],
+    ['Context window na enna?','AI orey nerathula paakka mudiyura text limit. Fill aana quality drop. Fix: /clear, /compact, orey session = orey task.'],
+    ['Permission modes maatha shortcut?','Shift+Tab: default → accept edits → plan mode.'],
+    ['AI-ah naduvula stop panna?','Esc. Pazhaya message-ku poga Esc Esc.'],
+    ['Plan mode yen?','Thappaana design-ah code ezhudhuradhukku munnaadi pudikkalaam. Plan correct pannuradhu cheap.'],
+    ['Bug fix best pattern?','Failing test mudhalla → fail confirm → fix → ellaa tests pass.'],
+    ['Agentic loop?','Read → Plan → Edit → Run tests → Fail-na fix → Repeat until pass.'],
+    ['Review checklist?','Hallucinated APIs, security (secrets, injection, validation), edge cases, duplication, scope creep, test quality.'],
+    ['CLAUDE.md rule vs Hook?','Rule = AI follow pannum (suggestion). Hook = harness run pannum, guaranteed.'],
+    ['MCP na enna?','Model Context Protocol: AI-ah external tools (GitHub, DB, browser) kooda connect panna open standard. Ellaa major tools-um support.'],
+    ['Subagent yen?','Thani context-oda helper. Periya search/review-ah adhu pannum, main context clean-ah irukkum.'],
+    ['Parallel AI tasks conflict illama?','git worktree add ../folder -b branch. Ovvoru folder-la thani session.'],
+    ['Headless mode?','claude -p "prompt" / codex exec / gemini -p: scripts, CI-la use.'],
+    ['AI change pudikkala, undo?','git restore . (commit pannaadha changes discard).'],
+    ['AI orey mistake repeat pannudhu?','Instructions file-la adha oru line rule-ah add pannunga.'],
+    ['Cursor shortcuts?','Tab autocomplete, Ctrl+K inline edit, Ctrl+L chat, Ctrl+I agent.'],
+    ['Hallucination-ah eppadi handle?','Tests (fail aagum), review-la unfamiliar API-ah docs-la check, nalla context kudunga.'],
+    ['Team-la AI standardize?','Shared instructions file in git, shared slash commands, hooks, normal PR review.']
+  ];
+  let i=0, flipped=false;
+  const card=document.getElementById('card'), side=document.getElementById('cardSide'), txt=document.getElementById('cardTxt'), cnt=document.getElementById('fcCount');
+  function show(){flipped=false;card.classList.remove('flipped');side.textContent='Question';txt.textContent=cards[i][0];cnt.textContent=(i+1)+' / '+cards.length}
+  card.addEventListener('click',()=>{flipped=!flipped;card.classList.toggle('flipped',flipped);side.textContent=flipped?'Answer':'Question';txt.textContent=cards[i][flipped?1:0]});
+  document.getElementById('next').addEventListener('click',()=>{i=(i+1)%cards.length;show()});
+  document.getElementById('prev').addEventListener('click',()=>{i=(i-1+cards.length)%cards.length;show()});
+  document.getElementById('shuffle').addEventListener('click',()=>{for(let k=cards.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[cards[k],cards[j]]=[cards[j],cards[k]]}i=0;show()});
+  show();
+})();
+</script>
+
+<script src="nav.js"></script>

@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude Tool Use</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as the lessons — one reading column, agentic loop code, option tables, wrong vs right pairs */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Lesson 7 · CCDV-F: Tools &amp; MCPs (10.6%) + Agents &amp; Workflows</span>
+    <h1>Tool Use</h1>
+    <p class="lede">Claude-ku "kai" kudukkuradhu: unga functions-ah call panna vaikkiradhu. Tool definition, manual agentic loop, Tool Runner, server tools, approval gates, error handling. TypeScript <code>@anthropic-ai/sdk</code>, model <code>claude-opus-5-5</code>.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#why">Why</a></li>
+      <li><a href="#define">Define a tool</a></li>
+      <li><a href="#loop">Manual loop</a></li>
+      <li><a href="#parallel">Parallel &amp; errors</a></li>
+      <li><a href="#choice">tool_choice &amp; strict</a></li>
+      <li><a href="#runner">Tool Runner</a></li>
+      <li><a href="#server">Server tools</a></li>
+      <li><a href="#clientserver">Client vs server</a></li>
+      <li><a href="#approval">Approval</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Why</span>
+      <h2>Model-ku internet, DB, unga code theriyaadhu. Tools dhaan bridge.</h2>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Myth</span><pre>Claude en function-ah thaane run pannum</pre><p>Illa. Claude "indha tool-ah indha input-oda call pannu" nu <b>request</b> mattum pannum. Execute pannuradhu <b>unga code</b>.</p></div>
+      <div class="good"><span class="tag">Reality</span><pre>1. Neenga tools list anuppureenga
+2. Claude: stop_reason "tool_use" + tool_use block
+3. Unga code tool run pannum
+4. tool_result thirumba anuppureenga
+5. Claude final answer (or innoru tool call)</pre><p>Idhu dhaan <b>agentic loop</b>. Claude Code-um ulla idhe dhaan.</p></div>
+    </div>
+  </section>
+
+  <section id="define">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Definition</span>
+      <h2>Tool = name + description + input_schema</h2>
+    </div>
+    <div class="term"><div class="term-bar"><span>src/tools.ts</span></div><pre>import Anthropic from "@anthropic-ai/sdk";
+
+export const tools: Anthropic.Tool[] = [
+  {
+    name: "get_weather",
+    description:
+      "Get the current weather for a city. Call this whenever the user asks about weather, temperature or rain right now.",
+    input_schema: {
+      type: "object",
+      properties: {
+        location: { type: "string", description: "City and state, e.g. Chennai, TN" },
+        unit: { type: "string", enum: ["celsius", "fahrenheit"], description: "Temperature unit" },
+      },
+      required: ["location"],
+    },
+  },
+];</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Field</th><th>Best practice</th></tr></thead>
+      <tbody>
+        <tr><td><code>name</code></td><td>Specific verb_noun: <code>get_current_weather</code>, <code>search_orders</code>. <code>weather</code> / <code>tool1</code> vendaam</td></tr>
+        <tr><td><code>description</code></td><td><b>Mukkiyamaana field.</b> Enna pannum + <b>eppo call pannanum</b> ("Call this when..."). Recent Opus models tools-ah conservative-aa use pannum; trigger condition sonna call rate yerum</td></tr>
+        <tr><td><code>input_schema</code></td><td>JSON Schema. Ovvoru property-kkum description; fixed values-ku <code>enum</code>; real-aa venumnadhu mattum <code>required</code></td></tr>
+        <tr><td><code>strict</code></td><td><code>true</code> na arguments schema-ku exact-aa match (needs <code>additionalProperties: false</code>)</td></tr>
+        <tr><td><code>eager_input_streaming</code></td><td>Streaming + big inputs-ku; adhukkappuram validation unga responsibility</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>{ name: "db", description: "database",
+  input_schema: { type: "object", properties: { q: { type: "string" } } } }</pre><p>Eppo use pannanum, <code>q</code> enna format nu Claude-ku theriyaadhu. Raw SQL-um anuppalaam (danger).</p></div>
+      <div class="good"><span class="tag">Right</span><pre>{ name: "search_orders",
+  description: "Find a customer's orders by email. Call this when the user asks about the status of their order.",
+  input_schema: { ..., properties: { email: { type: "string", description: "Customer email" },
+    status: { type: "string", enum: ["pending","shipped","delivered"] } }, required: ["email"] } }</pre><p>Narrow, typed, described. Least privilege.</p></div>
+    </div>
+  </section>
+
+  <section id="loop">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Manual agentic loop</span>
+      <h2>Loop-ah oru thadava kai-la ezhudhunga (exam + understanding)</h2>
+    </div>
+    <div class="term"><div class="term-bar"><span>src/agent.ts</span></div><pre>import Anthropic from "@anthropic-ai/sdk";
+import { tools } from "./tools.js";
+
+const client = new Anthropic();
+
+async function executeTool(name: string, input: unknown): Promise&lt;string&gt; {
+  if (name === "get_weather") {
+    const { location } = input as { location: string };
+    return JSON.stringify({ location, temp_c: 31, condition: "humid" }); <span class="c">// fake data for practice</span>
+  }
+  throw new Error(`Unknown tool: ${name}`);
+}
+
+const messages: Anthropic.MessageParam[] = [
+  { role: "user", content: "Chennai-la ippo weather eppadi? Bangalore-um sollu." },
+];
+
+while (true) {
+  const response = await client.messages.create({
+    model: "claude-opus-5-5",
+    max_tokens: 16000,
+    tools,
+    messages,
+  });
+
+  if (response.stop_reason === "end_turn") {
+    for (const b of response.content) if (b.type === "text") console.log(b.text);
+    break;
+  }
+
+  <span class="c">// server tool loop limit hit aana: assistant turn append panni re-send</span>
+  if (response.stop_reason === "pause_turn") {
+    messages.push({ role: "assistant", content: response.content });
+    continue;
+  }
+
+  const toolUses = response.content.filter(
+    (b): b is Anthropic.ToolUseBlock =&gt; b.type === "tool_use",
+  );
+  if (toolUses.length === 0) break; <span class="c">// max_tokens, refusal, etc.</span>
+
+  <span class="c">// 1. Full assistant content append (tool_use blocks preserve aaganum)</span>
+  messages.push({ role: "assistant", content: response.content });
+
+  <span class="c">// 2. ELLAA results-um ORE user message-la</span>
+  const results: Anthropic.ToolResultBlockParam[] = [];
+  for (const t of toolUses) {
+    try {
+      results.push({ type: "tool_result", tool_use_id: t.id, content: await executeTool(t.name, t.input) });
+    } catch (err) {
+      results.push({ type: "tool_result", tool_use_id: t.id, is_error: true, content: String(err) });
+    }
+  }
+  messages.push({ role: "user", content: results });
+}</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th><code>stop_reason</code></th><th>Enna pannanum</th></tr></thead>
+      <tbody>
+        <tr><td><code>end_turn</code></td><td>Mudinjadhu. Text print</td></tr>
+        <tr><td><code>tool_use</code></td><td>Tools run panni <code>tool_result</code> anuppu</td></tr>
+        <tr><td><code>pause_turn</code></td><td>Server tool loop (default 10 iterations) pause. Assistant content append panni re-send; "Continue" user message <b>podaadheenga</b></td></tr>
+        <tr><td><code>max_tokens</code></td><td>Cut aayiduchu. Tool input truncated-aa irukkalaam: tool <b>run pannaadheenga</b>, <code>max_tokens</code> yetthi retry</td></tr>
+        <tr><td><code>refusal</code></td><td>Safety decline. Andha turn-oda tools run pannaadheenga; <code>stop_details</code> paarunga</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Loop-ku oru max iterations limit vachukkonga (e.g. 10). Illana bug irundhaa infinite loop + bill.</div>
+  </section>
+
+  <section id="parallel">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Parallel calls &amp; errors</span>
+      <h2>Oru response-la pala tool_use blocks varalaam</h2>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>for (const t of toolUses) {
+  messages.push({ role: "user", content: [resultFor(t)] });
+}</pre><p>Ovvoru result-um thani message. Claude-ku "parallel call pannaadhe" nu silent-aa train aagum.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>const results = await Promise.all(toolUses.map(run));
+messages.push({ role: "user", content: results });</pre><p>Concurrent-aa run, ellaa results-um ore user message.</p></div>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Situation</th><th>Handle eppadi</th></tr></thead>
+      <tbody>
+        <tr><td>Tool fail (API down, not found)</td><td><code>is_error: true</code> + clear message ("Order 4411 not found"). Drop pannaadheenga; Claude vera vazhi try pannum</td></tr>
+        <tr><td>Bad input</td><td>Validate (zod <code>safeParse</code>), error result return; execute pannaadheenga</td></tr>
+        <tr><td>Tool input JSON parse</td><td>Eppovum <code>JSON.parse</code> / SDK object; raw string matching pannaadheenga (escaping models-ku models maarum)</td></tr>
+        <tr><td>API errors (429, 5xx)</td><td>SDK default-aa 2 retries. Typed errors catch: <code>Anthropic.RateLimitError</code>, <code>Anthropic.APIError</code></td></tr>
+        <tr><td>One call at a time venum</td><td><code>tool_choice: { type: "auto", disable_parallel_tool_use: true }</code></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="choice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Control</span>
+      <h2><code>tool_choice</code> and <code>strict</code></h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Value</th><th>Behaviour</th><th>Current models (Opus 5.5, Sonnet 5.5, Fable 5.1)</th></tr></thead>
+      <tbody>
+        <tr><td><code>{ type: "auto" }</code></td><td>Claude decide pannum (default)</td><td>OK</td></tr>
+        <tr><td><code>{ type: "none" }</code></td><td>Tools use panna koodaadhu</td><td>OK</td></tr>
+        <tr><td><code>{ type: "any" }</code></td><td>Kandippa oru tool</td><td><b>400 error</b></td></tr>
+        <tr><td><code>{ type: "tool", name }</code></td><td>Indha tool kandippa</td><td><b>400 error</b></td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>forced call illaama "force" pannuradhu</span></div><pre>const response = await client.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  tools: tools.map((t) =&gt; ({ ...t, strict: true })), <span class="c">// schemas need additionalProperties: false</span>
+  messages: [{ role: "user", content: "What's the weather in Chennai? Use the get_weather tool." }],
+});
+<span class="c">// auto guarantee illa: tool_use block vandhudhaa check, illana re-prompt</span></pre></div>
+    <div class="note">JSON extract pannradhukkaaga mattum dhaan force panneenga-na, adhukku tool vendaam: <b>structured outputs</b> (<code>output_config.format</code>, Lesson 6).</div>
+  </section>
+
+  <section id="runner">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Tool Runner (beta)</span>
+      <h2>Loop-ah SDK-ve pannum</h2>
+      <p class="muted">Loop concept purinjappuram, real code-la Tool Runner default. Approval gates, error interception, streaming, compaction ellam idhulaiyum pannalaam.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>src/runner.ts · npm i @anthropic-ai/sdk zod</span></div><pre>import Anthropic from "@anthropic-ai/sdk";
+import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { z } from "zod";
+
+const client = new Anthropic();
+
+const getWeather = betaZodTool({
+  name: "get_weather",
+  description: "Get current weather for a city. Call this when the user asks about weather.",
+  inputSchema: z.object({
+    location: z.string().describe("City and state, e.g. Chennai, TN"),
+    unit: z.enum(["celsius", "fahrenheit"]).optional(),
+  }),
+  run: async (input) =&gt; `31°C and humid in ${input.location}`,
+});
+
+const finalMessage = await client.beta.messages.toolRunner({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  tools: [getWeather],
+  messages: [{ role: "user", content: "Chennai weather?" }],
+});
+
+console.log(finalMessage.content);</pre></div>
+    <div class="term"><div class="term-bar"><span>Python equivalent</span></div><pre>from anthropic import Anthropic, beta_tool
+
+client = Anthropic()
+
+@beta_tool
+def get_weather(location: str, unit: str = "celsius") -&gt; str:
+    """Get current weather for a city.
+
+    Args:
+        location: City and state, e.g. Chennai, TN.
+        unit: "celsius" or "fahrenheit".
+    """
+    return f"31°C and humid in {location}"
+
+runner = client.beta.messages.tool_runner(
+    model="claude-opus-5-5", max_tokens=16000,
+    tools=[get_weather],
+    messages=[{"role": "user", "content": "Chennai weather?"}],
+)
+print(runner.until_done())</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Point</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td><code>betaZodTool</code></td><td>Zod schema → JSON schema auto; <code>run</code>-ku munnadi input validate</td></tr>
+        <tr><td><code>betaTool()</code></td><td>Raw JSON Schema version (<code>@anthropic-ai/sdk/helpers/beta/json-schema</code>); runtime validation <b>illa</b>, neengalae pannanum</td></tr>
+        <tr><td><code>pause_turn</code></td><td>Runner auto-resume pannaadhu. Server tools mix panna, <code>for await</code> loop-la check panni <code>runner.pushMessages(...)</code></td></tr>
+        <tr><td><code>eager_input_streaming</code></td><td><code>betaZodTool</code>-la option illa: <code>{ ...betaZodTool({...}), eager_input_streaming: true }</code></td></tr>
+        <tr><td>Tool Runner ≠ Agent SDK</td><td>Runner = unga tools-ku loop. Agent SDK = Claude Code harness + built-in tools (Lesson 9)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="server">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · Server tools</span>
+      <h2>Anthropic servers-la odura tools</h2>
+      <p class="muted">Schema vendaam, execute code vendaam. <code>tools</code>-la declare panna podhum; results same response-la varum.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Tool</th><th><code>type</code> / <code>name</code></th><th>Result block</th></tr></thead>
+      <tbody>
+        <tr><td>Web search</td><td><code>web_search_20260209</code> / <code>web_search</code></td><td><code>web_search_tool_result</code></td></tr>
+        <tr><td>Web fetch</td><td><code>web_fetch_20260209</code> / <code>web_fetch</code></td><td><code>web_fetch_tool_result</code></td></tr>
+        <tr><td>Code execution</td><td><code>code_execution_20260521</code> / <code>code_execution</code></td><td><code>bash_code_execution_tool_result</code> (<code>stdout</code>, <code>stderr</code>, <code>return_code</code>)</td></tr>
+        <tr><td>Tool search</td><td><code>tool_search_tool_regex_20251119</code> / <code>_bm25_</code></td><td>Neraiya tools-na <code>defer_loading: true</code></td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>src/research.ts</span></div><pre>const response = await client.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  tools: [
+    { type: "web_search_20260209", name: "web_search", max_uses: 5 },
+    { type: "web_fetch_20260209", name: "web_fetch" },
+  ],
+  messages: [{ role: "user", content: "What changed in the latest Node.js LTS release?" }],
+});
+<span class="c">// pause_turn vandhaa: assistant content append panni re-send</span></pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Gotcha</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>Dynamic filtering</td><td><code>_20260209</code> web tools ulla code execution use pannum. Adhanaala thani <code>code_execution</code> tool serkka vendaam (rendu environment confuse pannum)</td></tr>
+        <tr><td>Errors don't throw</td><td>Web search fail aanaalum HTTP 200; result <code>content</code> error object (e.g. <code>max_uses_exceeded</code>). Success = list, error = object; check pannunga</td></tr>
+        <tr><td>Web fetch</td><td>Conversation-la already irukkura URLs mattum fetch pannum</td></tr>
+        <tr><td>Code execution sandbox</td><td>Internet illa, Python 3.11 + pandas/numpy/matplotlib, container reuse panna mudiyum</td></tr>
+        <tr><td>Older models</td><td><code>web_search_20250305</code>; Vertex AI-la basic web search mattum</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="clientserver">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Choose</span>
+      <h2>Client tool vs server tool vs Skill vs MCP</h2>
+      <p class="muted">Exam "Agentic Customization" sub-skill idhu dhaan.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Option</th><th>Yaar run pannuvaanga</th><th>Eppo</th></tr></thead>
+      <tbody>
+        <tr><td><code>Client (custom) tool</code></td><td>Unga code</td><td>Unga DB, internal API, business logic</td></tr>
+        <tr><td><code>Anthropic-defined client tool</code></td><td>Unga code (schema Anthropic tharum): <code>bash_20250124</code>, <code>text_editor_20250728</code>, <code>memory_20250818</code></td><td>Coding agents, file editing, memory</td></tr>
+        <tr><td><code>Server tool</code></td><td>Anthropic</td><td>Web search/fetch, sandboxed code</td></tr>
+        <tr><td><code>Skill</code></td><td>Code execution container-la</td><td>Reusable know-how + scripts (pptx, xlsx, unga workflows)</td></tr>
+        <tr><td><code>MCP server</code></td><td>Separate server process</td><td>Pala apps / clients share pannura integration (Lesson 8)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="approval">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Safety</span>
+      <h2>Human-in-the-loop approval</h2>
+      <p class="muted">Side effects irukkura tools (email anuppuradhu, refund, delete) Claude sonnaa udane run aaga koodaadhu.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>gate inside the tool</span></div><pre>const issueRefund = betaZodTool({
+  name: "issue_refund",
+  description: "Refund an order. Only call after confirming the order id with the user.",
+  inputSchema: z.object({ order_id: z.string(), amount_inr: z.number() }),
+  run: async ({ order_id, amount_inr }) =&gt; {
+    if (amount_inr &gt; 2000) return "Declined: refunds above ₹2000 need a human agent.";
+    const ok = await askHuman(`Refund ₹${amount_inr} for ${order_id}?`); <span class="c">// unga UI / CLI prompt</span>
+    if (!ok) return "The user declined this refund.";
+    return await payments.refund(order_id, amount_inr);
+  },
+});</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Pattern</th><th>Enna</th></tr></thead>
+      <tbody>
+        <tr><td>Gate in <code>run</code></td><td>Approve kekkaama execute illa; decline-na "user declined" result</td></tr>
+        <tr><td>Inspect before run</td><td>Runner yield pannura message-la pending <code>tool_use</code> paathu <code>setMessagesParams()</code> vachu allow/deny</td></tr>
+        <tr><td>Hard limits in code</td><td>Amount cap, allow-list: prompt-la illa, code-la</td></tr>
+        <tr><td>Least privilege</td><td>Read-only tool tani, write tool tani; theva illaadha tools anuppaadheenga</td></tr>
+        <tr><td>Untrusted paths</td><td>Model kudukkura <code>path</code> project root-ku veliya pogudhaa check (path traversal)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Your turn</span>
+      <h2>Practice: todo agent</h2>
+      <p class="muted">Lesson 6 <code>triage</code> folder maadhiri setup (<code>"type": "module"</code>, <code>tsx</code>). Code neengalae type pannunga.</p>
+      <span class="counter" id="count">0 / 9 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span><code>mkdir todo-agent &amp;&amp; cd todo-agent &amp;&amp; npm init -y &amp;&amp; npm i @anthropic-ai/sdk zod &amp;&amp; npm i -D tsx</code></span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span>In-memory array: <code>list_todos</code>, <code>add_todo</code>, <code>complete_todo</code> moonu tool definitions (raw JSON Schema), nalla descriptions-oda</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span>Step 2 maadhiri <b>manual loop</b> ezhudhunga, max 10 iterations limit-oda</span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span>"Add milk and eggs, then show my list" try: parallel <code>add_todo</code> calls varudhaa? Ore user message-la results anuppureengalaa?</span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span><code>complete_todo</code>-la illaadha id-ku <code>is_error: true</code> return. Claude eppadi react pannudhu?</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span><code>strict: true</code> + <code>additionalProperties: false</code> serthunga</span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span>Adhe agent-ah <b>Tool Runner</b> + <code>betaZodTool</code>-la rewrite. Lines count compare</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span><code>delete_all_todos</code> tool add panni, <code>run</code>-la terminal confirm (y/n) gate</span></label></li>
+      <li><input type="checkbox" id="s9"><label for="s9"><span class="n"></span><span><code>web_search_20260209</code> serthu "add a todo to buy today's top-rated Tamil movie ticket" try; <code>pause_turn</code> handle</span></label></li>
+    </ol>
+  </section>
+
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 10 · Check</span>
+      <h2>Quick quiz (exam style)</h2>
+    </div>
+    <div class="stack">
+      <details><summary>1. Claude oru response-la 3 tool_use blocks anuppuchu. Results eppadi anuppanum?</summary><p>Moonaiyum (concurrent-aa) run panni, moonu <code>tool_result</code> blocks-aiyum <b>ore</b> user message-la, ovvonnum matching <code>tool_use_id</code>-oda.</p></details>
+      <details><summary>2. Opus 5.5-la <code>tool_choice: { type: "tool", name: "extract" }</code> anuppureenga. Result?</summary><p>400. <code>auto</code> + prompt-la tool name sollunga + <code>strict: true</code>; JSON extract mattum-na structured outputs.</p></details>
+      <details><summary>3. Database timeout aachu. Tool result-ah skip pannalaamaa?</summary><p>Illa. <code>is_error: true</code> + informative message-oda <code>tool_result</code> anuppunga; ovvoru <code>tool_use</code>-kkum result kandippa venum.</p></details>
+      <details><summary>4. Web search use pannumbodhu <code>stop_reason: "pause_turn"</code>. Enna pannanum?</summary><p>Assistant <code>response.content</code>-ah messages-la append panni adhe request re-send. "Continue" user message serkka vendaam; server resume pannum.</p></details>
+      <details><summary>5. Refund tool-ku safety: prompt-la "₹2000 mela refund pannaadhe" pottaa podhumaa?</summary><p>Podhaadhu. Limit-ah <b>code</b>-la (<code>run</code> function) enforce pannunga + human approval. Prompt = suggestion, code = guarantee.</p></details>
+      <details><summary>6. Tool Runner vs Claude Agent SDK difference?</summary><p>Tool Runner = Anthropic SDK-oda beta helper, <b>unga</b> tools-ku loop. Agent SDK = Claude Code harness library, built-in Read/Edit/Bash tools + subagents + hooks. Rendum harness mattum; deploy neengalae.</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"Tool use-la Claude call-ah request mattum pannum, execute pannradhu en code. Clear descriptions-oda narrow tools, strict schemas, ellaa parallel results-um ore message-la, failures-ku is_error, pause_turn handle. Side-effect tools-ku code-la limits + human approval. Default-aa Tool Runner, full control venumna manual loop."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson07-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){
+      b.closest("li").classList.toggle("done", b.checked);
+      if (b.checked) done++;
+    });
+    count.textContent = done + " / " + boxes.length + " done";
+  }
+
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>

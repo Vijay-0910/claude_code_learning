@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Evals and Debugging</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as the lessons — eval building first, then API debugging */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Lesson 11 · CCDV-F Eval, Testing &amp; Debugging (2.6%) + Output Handling</span>
+    <h1>Evals &amp; Debugging</h1>
+    <p class="lede">"Prompt maathinen, better aachaa?" nu feeling vachu illa, <b>numbers</b> vachu sollanum. Apram error vandha, adhu unga code-oda bug-aa, API problem-aa, model output problem-aa nu pirichu kandupidikkanum.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#why">Why evals</a></li>
+      <li><a href="#build">Eval set</a></li>
+      <li><a href="#grading">Grading</a></li>
+      <li><a href="#runner">Runner</a></li>
+      <li><a href="#regression">Regression</a></li>
+      <li><a href="#errors">Error types</a></li>
+      <li><a href="#handling">Error handling</a></li>
+      <li><a href="#stop">stop_reason</a></li>
+      <li><a href="#isolate">Isolate bugs</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Why</span>
+      <h2>Eval illaama prompt maathuradhu = kann moodittu driving</h2>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Vibe testing</span><pre>Prompt maathinen
+2 examples try panninen
+"Nalla irukku" → ship</pre><p>Vera 30 cases-la break aagirukkalaam. Model upgrade pannum podhu edhu regress aachu nu theriyaadhu.</p></div>
+      <div class="good"><span class="tag">Eval-driven</span><pre>40 real cases + grader
+Baseline: 31/40 pass, $0.012/case
+Prompt v2: 36/40 pass, $0.011/case
+→ ship, numbers-oda</pre><p>Ovvoru change-um (prompt, model, effort, tools) measurable.</p></div>
+    </div>
+    <div class="why"><p><strong>Eval = 3 vishayam:</strong> (1) input examples set, (2) unga app-ah ovvoru input-laiyum run panna oru vazhi, (3) output-ah grade panna oru vazhi. Framework mukkiyam illa; inputs-um grader-um correct-aa irukkaanu dhaan mukkiyam.</p></div>
+  </section>
+
+  <section id="build">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Inputs</span>
+      <h2>Eval set eppadi build pannuradhu</h2>
+      <p class="muted">Best source mudhalla. Mudhal eval-ku 15–100 cases. 15-ku keezha na oru flaky case score-ah aattidum.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>#</th><th>Source</th><th>Quality</th><th>Gotcha</th></tr></thead>
+      <tbody>
+        <tr><td><code>1</code></td><td>Production transcripts / logs</td><td>Highest fidelity</td><td>Retention policy, PII: repo-la vaikka mudiyumaa nu mudhalla check</td></tr>
+        <tr><td><code>2</code></td><td>Bug reports, support tickets</td><td>Very valuable: real failures</td><td>Fix aanadhaiyum regression case-aa vachukkonga</td></tr>
+        <tr><td><code>3</code></td><td>Neengalae ezhudhuradhu (5–10)</td><td>Seed</td><td>Neenga nenaikkuradhu, frequent-aa nadakkuradhu illa</td></tr>
+        <tr><td><code>4</code></td><td>Claude synthesize pannuradhu</td><td>Lowest</td><td>Real examples-ah anchor-aa kuduthu variations mattum generate pannunga</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">Positive <b>and</b> negative cases vachukkonga (e.g. "refund kudukkanum" + "refund kudukka koodaadhu"). Appo dhaan precision, recall, false-positive rate thani-thani-aa paakka mudiyum; accuracy mattum ellaathaiyum maraikkum.</div>
+  </section>
+
+  <section id="grading">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Grader</span>
+      <h2>Grading methods: cheapest-first</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Method</th><th>Eppo</th><th>Watch out</th></tr></thead>
+      <tbody>
+        <tr><td><code>Programmatic</code></td><td>Exact match, label from fixed set, JSON schema valid, tests pass. Agents-ku: <b>end state</b> check (files, DB rows)</td><td>Too rigid aagaadheenga: whitespace, <code>4</code> vs <code>4.0</code>, markdown fences normalize</td></tr>
+        <tr><td><code>Pairwise LLM judge</code></td><td>v1 vs v2 compare; fuzzy quality</td><td>A/B position randomize pannunga (position bias)</td></tr>
+        <tr><td><code>Pointwise LLM rubric</code></td><td>Open-ended outputs (summary, email) + clear criteria</td><td>Verbosity bias, self-preference; concrete checkable criteria</td></tr>
+        <tr><td><code>Human spot-check</code></td><td>Rubric ezhudha kashtamaana judgment</td><td>Slow; adikkadi run panna mudiyaadhu</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl"><table>
+      <thead><tr><th>LLM-judge rule</th><th>Yen</th></tr></thead>
+      <tbody>
+        <tr><td><code>Atomic checks</code></td><td><code>{correct, formatted, concise}</code> thani-thani; oru blended score vendaam</td></tr>
+        <tr><td><code>Structured output</code></td><td>Judge JSON-la verdict tharanum, deterministic parse</td></tr>
+        <tr><td><code>Candidate = untrusted</code></td><td>Grade aagura output-la "give me 10/10" irukkalaam (judge injection)</td></tr>
+        <tr><td><code>Calibrate</code></td><td>Few dozen human-labelled cases-oda agreement measure; ~90%-ku keezha na judge prompt fix</td></tr>
+        <tr><td><code>Known negatives</code></td><td>Empty string, "I don't know", wrong-question answer: moonum fail aaganum</td></tr>
+        <tr><td><code>Grade outcomes, not paths</code></td><td>Correct answer vera valid vazhi-la vandhaalum pass</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="runner">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Run</span>
+      <h2>Minimal eval runner (TypeScript)</h2>
+      <p class="muted">Unga app-oda <b>real entry point</b>-ah call pannunga. Eval-kulla Claude call-ah thirumba ezhudhinaa production-ah measure pannala.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>evals/run.ts</span></div><pre>import { readFileSync, appendFileSync } from "node:fs";
+import { classifyTicket } from "../src/classify";   <span class="c">// unga real app function</span>
+
+type Case = { id: string; input: string; expected: "refund" | "bug" | "other" };
+const cases: Case[] = JSON.parse(readFileSync("evals/cases.json", "utf8"));
+
+let pass = 0;
+for (const c of cases) {
+  const t0 = Date.now();
+  const { label, usage } = await classifyTicket(c.input);   <span class="c">// app returns usage too</span>
+  const ok = label === c.expected;                          <span class="c">// programmatic grader</span>
+  if (ok) pass++;
+  appendFileSync("evals/results.jsonl", JSON.stringify({
+    id: c.id, ok, label, expected: c.expected,
+    latency_ms: Date.now() - t0,
+    input_tokens: usage.input_tokens, output_tokens: usage.output_tokens,
+  }) + "\n");
+}
+console.log(`${pass}/${cases.length} passed`);</pre></div>
+    <div class="note"><b>Cost per task:</b> <code>usage</code>-la irundhu tokens × price. Guess pannaadheenga, oru pilot run panni measure pannunga. Per-request cost illa, <b>per completed task</b> cost dhaan real (retries, extra turns serthu). Cost <code>$0.00</code> or latency <code>0</code> vandha adhu runner bug, result illa.</div>
+  </section>
+
+  <section id="regression">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · CI</span>
+      <h2>Prompt regression testing</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Practice</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td><code>Prompts in git</code></td><td>Prompt = code. Version, review, diff</td></tr>
+        <tr><td><code>Pin model ID</code></td><td>Exact ID (<code>claude-opus-5-5</code>); model maathum podhu eval run panni dhaan</td></tr>
+        <tr><td><code>Run on PR</code></td><td>Prompt / tool description maarina CI-la eval; threshold-ku keezha pona fail</td></tr>
+        <tr><td><code>Noise floor</code></td><td>LLM non-deterministic. 25 cases × 2 reps ≈ ±14 points noise. Chinna difference-ah "improvement" nu sollaadheenga</td></tr>
+        <tr><td><code>Fixed bugs → cases</code></td><td>Ovvoru production bug-um oru puthu eval case</td></tr>
+        <tr><td><code>Side metrics</code></td><td>Latency, tokens, cost, refusal rate, max_tokens hits: quality-oda thani columns</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="errors">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Debugging</span>
+      <h2>API error types</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>HTTP</th><th>Type</th><th>Retry?</th><th>Common cause</th></tr></thead>
+      <tbody>
+        <tr><td><code>400</code></td><td><code>invalid_request_error</code></td><td>No</td><td>Bad params; roles alternate aagala; first message assistant; Opus 5.5-la <code>temperature</code> / <code>budget_tokens</code> / forced <code>tool_choice</code></td></tr>
+        <tr><td><code>401</code></td><td><code>authentication_error</code></td><td>No</td><td>Key missing / revoked; <code>ANTHROPIC_API_KEY</code> + <code>ANTHROPIC_AUTH_TOKEN</code> rendum set</td></tr>
+        <tr><td><code>402</code></td><td><code>billing_error</code></td><td>No</td><td>Billing / payment problem</td></tr>
+        <tr><td><code>403</code></td><td><code>permission_error</code></td><td>No</td><td>Credential / workspace-ku allowed illa</td></tr>
+        <tr><td><code>404</code></td><td><code>not_found_error</code></td><td>No</td><td>Model ID typo (<code>claude-sonnet-4.6</code> ❌ <code>claude-sonnet-4-6</code> ✅), org-ku model illa</td></tr>
+        <tr><td><code>413</code></td><td><code>request_too_large</code></td><td>No</td><td>Request body / image too big: chunk, resize</td></tr>
+        <tr><td><code>429</code></td><td><code>rate_limit_error</code></td><td>Yes</td><td>RPM / TPM limit; <code>retry-after</code> header paarunga</td></tr>
+        <tr><td><code>500</code></td><td><code>api_error</code></td><td>Yes</td><td>Anthropic side issue; status.anthropic.com</td></tr>
+        <tr><td><code>529</code></td><td><code>overloaded_error</code></td><td>Yes</td><td>High demand; backoff, queue</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="handling">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · Code</span>
+      <h2>Typed exception chain + request ID</h2>
+    </div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>catch (e) {
+  if (String(e).includes("rate")) retry();
+}</pre><p>String matching: message maarina break. Retryable vs non-retryable kalandhudum.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>catch (e) {
+  if (e instanceof Anthropic.RateLimitError) ...
+}</pre><p>SDK typed classes. Most specific first.</p></div>
+    </div>
+    <div class="term"><div class="term-bar"><span>call-claude.ts</span></div><pre>import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({ maxRetries: 2 });  <span class="c">// default 2: 408, 409, 429, &gt;=500, connection errors auto-retry</span>
+
+try {
+  const msg = await client.messages.create({ model: "claude-opus-5-5", max_tokens: 16000, messages });
+  console.log("request id:", msg._request_id);    <span class="c">// log it; support-ku report panna</span>
+} catch (err) {
+  if (err instanceof Anthropic.NotFoundError) {
+    <span class="c">// 404: model ID check; retry pannaadheenga</span>
+  } else if (err instanceof Anthropic.RateLimitError) {
+    <span class="c">// 429: SDK already retried; queue / slow down</span>
+  } else if (err instanceof Anthropic.APIConnectionError) {
+    <span class="c">// network; APIError-ku munnadi check (TS-la idhu APIError subclass)</span>
+  } else if (err instanceof Anthropic.APIError) {
+    console.error(err.status, err.name, err.message);   <span class="c">// other non-2xx</span>
+  } else {
+    throw err;
+  }
+}</pre></div>
+    <div class="note">Timeout default 10 min (TS-la milliseconds-la configure: <code>timeout: 20_000</code>). Periya <code>max_tokens</code>-ku streaming use pannunga. Timeouts-um retry aagum, so wall-clock = timeout × (retries+1) varaikkum pogalaam. <code>logLevel: "debug"</code> HTTP bodies log pannum: local debugging-ku mattum.</div>
+  </section>
+
+  <section id="stop">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Silent failures</span>
+      <h2><code>stop_reason</code>: 200 OK aanaalum check pannu</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Value</th><th>Meaning</th><th>Enna pannanum</th></tr></thead>
+      <tbody>
+        <tr><td><code>end_turn</code></td><td>Normal-aa mudinjuchu</td><td>OK</td></tr>
+        <tr><td><code>max_tokens</code></td><td><b>Truncated</b>, half answer / broken JSON</td><td><code>max_tokens</code> increase, streaming; JSON parse fail-ku idhu dhaan common reason</td></tr>
+        <tr><td><code>stop_sequence</code></td><td>Unga custom stop sequence hit</td><td>Expected-aa nu check</td></tr>
+        <tr><td><code>tool_use</code></td><td>Tool call pannanum</td><td>Execute panni <code>tool_result</code> anuppu, loop continue</td></tr>
+        <tr><td><code>pause_turn</code></td><td>Long server-tool turn pause aachu</td><td>Response-ah apdiye append panni thirumba call (resume)</td></tr>
+        <tr><td><code>refusal</code></td><td>Safety classifier decline</td><td><code>stop_details.category</code> log, user-ku friendly message / fallback</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="isolate">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Triage</span>
+      <h2>Integration bug-aa, model output problem-aa?</h2>
+      <p class="muted">Trace analysis: exact request + response-ah paaru, guess pannaadhe.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Symptom</th><th>Layer</th><th>Check</th></tr></thead>
+      <tbody>
+        <tr><td>Exception / non-2xx</td><td>Integration / API</td><td>Status, error type, request ID, unga request body</td></tr>
+        <tr><td>JSON parse fail</td><td>Mostly integration</td><td><code>stop_reason === "max_tokens"</code>? Structured outputs (<code>output_config.format</code>) use pannureengalaa?</td></tr>
+        <tr><td>Tool never runs</td><td>Integration</td><td><code>tool_use</code> block-ah handle pannureengalaa, <code>tool_result</code>-oda <code>tool_use_id</code> match aagudhaa, ellaa results ore user message-laa?</td></tr>
+        <tr><td>Claude "forgets" earlier chat</td><td>Integration</td><td>API stateless: full history anuppureengalaa?</td></tr>
+        <tr><td>Wrong but well-formed answer</td><td>Model output / prompt</td><td>Same request-ah Workbench-la replay; prompt clarity, context missing-aa, effort too low-aa</td></tr>
+        <tr><td>Sometimes right, sometimes wrong</td><td>Model variance</td><td>Eval multiple reps; prompt / examples strengthen; validate + retry</td></tr>
+        <tr><td>Cost spike</td><td>Integration</td><td><code>usage.cache_read_input_tokens</code> 0-aa? Prompt prefix-la <code>Date.now()</code> maadhiri invalidator</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><b>Golden trick:</b> failing request body-ah save panni, <b>ore input</b>-ah thani script-la replay pannunga. Same output vandha model/prompt issue; vera maadhiri vandha unga app enna anuppudhu nu paarunga (integration).</div>
+  </section>
+
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Your turn</span>
+      <h2>Practice</h2>
+      <span class="counter" id="count">0 / 8 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span><code>todo-api</code>-la oru chinna Claude feature: todo text-ah <code>work / personal / shopping</code> nu classify</span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span><code>evals/cases.json</code>: 20 cases neengalae ezhudhunga (5 tricky ones serthu)</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span>Step 3 runner ezhudhi baseline run: pass rate + total tokens note</span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span>Prompt-ku 3 few-shot examples add panni re-run. Improve aachaa? Noise-ah vida periya difference-aa?</span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span>Model ID-la typo pottu run: 404 + <code>NotFoundError</code> pidikkudhaa?</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span><code>max_tokens: 5</code> vachu run: <code>stop_reason</code> enna? Unga code adhai handle pannudhaa?</span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span>Ovvoru call-um <code>_request_id</code> log pannura maadhiri maathunga</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span><code>package.json</code>-la <code>"eval": "tsx evals/run.ts"</code> script; commit</span></label></li>
+    </ol>
+  </section>
+
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 10 · Check</span>
+      <h2>Quick quiz (exam style)</h2>
+    </div>
+    <div class="stack">
+      <details><summary>1. JSON.parse random-aa fail aagudhu, specially long outputs-la. Most likely cause?</summary><p><code>stop_reason: "max_tokens"</code>: output truncated. <code>max_tokens</code> increase / streaming, and structured outputs use pannunga.</p></details>
+      <details><summary>2. 429 vs 400: edhai retry pannanum?</summary><p>429 (and 500, 529, connection errors) retryable. 400/401/403/404/413 retry pannina same error dhaan; request-ah fix pannanum.</p></details>
+      <details><summary>3. Email summaries-ku eval venum. Correct answer ondru illa. Endha grader?</summary><p>LLM-judge rubric (pointwise) with concrete atomic criteria; or v1 vs v2 compare-na pairwise blind judge (A/B randomize). Human labels vachu judge-ah calibrate.</p></details>
+      <details><summary>4. Coding agent-ah eval pannanum. Transcript padichu grade pannalaamaa?</summary><p>Better: <b>end state</b> grade: disposable workspace-la run, tests pass aagudhaa, expected files irukkaa. Taste-ku mattum judge.</p></details>
+      <details><summary>5. Prompt v2: 22/25, v1: 20/25 (1 run each). Ship pannalaamaa?</summary><p>Innum sollamudiyaadhu. 25 cases × 1 rep noise floor ~±20 points. More cases / reps venum.</p></details>
+      <details><summary>6. Support ticket-ku Anthropic-kitta enna kudukkanum?</summary><p>Request ID (<code>msg._request_id</code> / <code>request-id</code> header), timestamp, error type. Prompt content illaama kooda request ID vachu trace pannalaam.</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"Prompt changes-ah eval vachu dhaan ship panren: real cases, cheapest valid grader (programmatic first, calibrated LLM judge for open-ended), cost per task-um measure. Debugging-la typed SDK errors, request IDs log, <code>stop_reason</code> eppovum check, failing request-ah replay panni integration bug-aa model behaviour-aa nu isolate pannuven."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson11-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){
+      b.closest("li").classList.toggle("done", b.checked);
+      if (b.checked) done++;
+    });
+    if (count) count.textContent = done + " / " + boxes.length + " done";
+  }
+
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>

@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude API 101</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: same field-notebook look as the lessons — one reading column, each API concept a page with code + options table */
+:root{
+  --bg:#f4f6f3; --surface:#ffffff; --sunk:#e9ede8; --fg:#1b2420; --muted:#56635d; --line:#d3dbd5;
+  --accent:#0d6b57; --accent-soft:#d6ece5; --warn:#a24a12; --warn-soft:#f8e4d6; --ok:#1f7a3a; --ok-soft:#dcefe1;
+  --code-bg:#17201c; --code-fg:#e3ece7; --code-dim:#8fa69b; --prompt:#6fd3b2;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#18201d; --sunk:#202a26; --fg:#e4ebe7; --muted:#9aaba3; --line:#2e3a35;
+  --accent:#4fc4a6; --accent-soft:#16352d; --warn:#f0a370; --warn-soft:#3a2418; --ok:#6ed38c; --ok-soft:#173422;
+  --code-bg:#0b100e; --code-fg:#e3ece7; --code-dim:#7d958a; --prompt:#6fd3b2; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.65;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 80px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,4vw,1.85rem);font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .35em;border-radius:4px}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+header.top{padding-block:40px 20px;display:flex;flex-direction:column;gap:12px}
+.lede{font-size:1.06rem;color:var(--muted);max-width:62ch}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;margin-bottom:8px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin}
+nav.toc a{display:block;white-space:nowrap;font-family:var(--mono);font-size:.82rem;text-decoration:none;color:var(--fg);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section{padding-block:36px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px}
+section:first-of-type{border-top:0}
+.sec-head{display:flex;flex-direction:column;gap:6px}
+
+.why{background:var(--accent-soft);border-radius:10px;padding:14px 16px}
+.why strong{color:var(--accent)}
+
+/* Terminal block */
+.term{background:var(--code-bg);color:var(--code-fg);border-radius:10px;font-family:var(--mono);font-size:.88rem;line-height:1.7;overflow-x:auto}
+.term pre{margin:0;padding:14px 16px}
+.term .p{color:var(--prompt);user-select:none}
+.term .c{color:var(--code-dim)}
+.term-bar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 6px 16px;border-bottom:1px solid #ffffff14;font-size:.72rem;color:var(--code-dim);letter-spacing:.06em;text-transform:uppercase}
+.copy{font:inherit;font-size:.72rem;background:transparent;color:var(--code-fg);border:1px solid #ffffff2e;border-radius:6px;padding:3px 9px;cursor:pointer}
+.copy:hover{border-color:var(--prompt)}
+
+/* Flag table */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{white-space:nowrap}
+td:first-child code{background:transparent;padding:0;color:var(--accent);font-weight:600}
+
+/* Wrong vs right */
+.vs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.vs > div{min-width:0;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vs .bad{background:var(--warn-soft)}
+.vs .good{background:var(--ok-soft)}
+.vs .tag{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.vs .bad .tag{color:var(--warn)}
+.vs .good .tag{color:var(--ok)}
+.vs pre{margin:0;font-family:var(--mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+
+.note{border-left:3px solid var(--warn);padding:4px 0 4px 14px;color:var(--fg)}
+
+/* Practice steps */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;counter-reset:step}
+ol.steps li{counter-increment:step;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+ol.steps li.done{border-color:var(--ok);background:var(--ok-soft)}
+ol.steps input{width:20px;height:20px;margin-top:3px;accent-color:var(--ok)}
+ol.steps label{display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+ol.steps .n::before{content:"Step " counter(step);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+ol.steps code{font-size:.92em}
+.counter{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Quiz */
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+
+.interview{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:18px 20px;font-size:1.04rem}
+.interview .eyebrow{color:var(--prompt)}
+
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Lesson 4 · CCDV-F: Applications &amp; Integration (33%)</span>
+    <h1>Claude API 101</h1>
+    <p class="lede">Claude Code-ah use pannuradhu oru vishayam. Claude-ah <b>unga sondha app-kulla</b> build pannuradhu vera. Indha lesson: API key, SDK install, first request, response shape, multi-turn, streaming, images/PDF, Files API, citations, errors. Code TypeScript-la (<code>@anthropic-ai/sdk</code>), sila idathula Python.</p>
+  </header>
+
+  <nav class="toc" aria-label="Lesson sections">
+    <ol>
+      <li><a href="#why">Why</a></li>
+      <li><a href="#auth">API key</a></li>
+      <li><a href="#first">First call</a></li>
+      <li><a href="#response">Response</a></li>
+      <li><a href="#multiturn">Multi-turn</a></li>
+      <li><a href="#stream">Streaming</a></li>
+      <li><a href="#vision">Images &amp; PDF</a></li>
+      <li><a href="#files">Files &amp; citations</a></li>
+      <li><a href="#errors">Errors</a></li>
+      <li><a href="#practice">Practice</a></li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <!-- WHY -->
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">Step 0 · Why</span>
+      <h2>Claude Code vs Claude API</h2>
+      <p class="muted">CCDV-F exam-la 33% indha area. "Claude-ah unga product-kulla integrate pannuradhu" dhaan main skill.</p>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Surface</th><th>Yaar use pannuvaanga</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>Claude Code</code></td><td>Developer, terminal-la</td><td>Unga code-ah Claude edit pannum</td></tr>
+        <tr><td><code>Claude API</code></td><td>Unga app-oda users</td><td>Support chatbot, PDF summarizer, ticket classifier</td></tr>
+        <tr><td><code>Managed Agents</code></td><td>Unga app, Anthropic-hosted agent loop + sandbox</td><td>Nightly report agent (Lesson 9)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="why stack">
+      <p><strong>Ore oru endpoint:</strong> ellame <code>POST /v1/messages</code> dhaan. Tools, structured output, thinking, caching: ellam indha endpoint-oda parameters. Thani API illa.</p>
+      <p><strong>Start simple:</strong> classification, summary, extraction = <b>single call</b>. Code-controlled steps = <b>workflow</b>. Open-ended = <b>agent</b>. Agent kadaisi option, mudhal option illa.</p>
+    </div>
+  </section>
+
+  <!-- AUTH -->
+  <section id="auth">
+    <div class="sec-head">
+      <span class="eyebrow">Step 1 · Setup</span>
+      <h2>API key &amp; SDK install</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Option</th><th>Eppadi</th><th>Eppo</th></tr></thead>
+      <tbody>
+        <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Claude Console-la key create panni env var-la set</td><td>Apps, servers, CI</td></tr>
+        <tr><td><code>ant auth login</code></td><td>Anthropic CLI login; profile <code>~/.config/anthropic/</code>-la save aagum</td><td>Local dev: env var illaamaye <code>new Anthropic()</code> work aagum</td></tr>
+        <tr><td><code>ANTHROPIC_AUTH_TOKEN</code></td><td>OAuth bearer token</td><td>Special setups. API key-um idhuvum rendum set pannaadheenga (401 varum)</td></tr>
+        <tr><td><code>ant auth status</code></td><td>Endha credential active nu kaattum</td><td>"401 varudhu" debug panna mudhalla</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>const client = new Anthropic({
+  apiKey: "sk-ant-api03-xxxx"   // code-la hardcode
+});</pre><p>Git-la commit aagum, leak aagum. Security domain-la idhu classic exam question.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>// export ANTHROPIC_API_KEY=... (shell / .env, .gitignore-la)
+const client = new Anthropic();   // env-la irundhu thaane edukkum</pre><p>Key code-la illa. Production-la secret manager.</p></div>
+    </div>
+    <div class="term"><div class="term-bar"><span>terminal</span></div><pre><span class="p">$ </span>mkdir claude-api-lab &amp;&amp; cd claude-api-lab
+<span class="p">$ </span>npm init -y &amp;&amp; npm pkg set type=module
+<span class="p">$ </span>npm install @anthropic-ai/sdk
+<span class="p">$ </span>npm install -D tsx typescript        <span class="c"># .ts file-ah direct-ah run panna</span>
+<span class="p">$ </span>echo ".env" &gt;&gt; .gitignore
+
+<span class="c"># Python version:  pip install anthropic</span></pre></div>
+  </section>
+
+  <!-- FIRST CALL -->
+  <section id="first">
+    <div class="sec-head">
+      <span class="eyebrow">Step 2 · Hello Claude</span>
+      <h2>First <code>messages.create</code></h2>
+    </div>
+    <div class="term"><div class="term-bar"><span>hello.ts</span></div><pre>import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();
+
+const response = await client.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  system: "You are a friendly tutor. Answer in simple Tanglish.",
+  messages: [{ role: "user", content: "REST API na enna?" }],
+});
+
+// content = blocks array. .type check panni dhaan .text edukkanum
+for (const block of response.content) {
+  if (block.type === "text") console.log(block.text);
+}</pre></div>
+    <div class="term"><div class="term-bar"><span>hello.py · same thing in Python</span></div><pre>import anthropic
+
+client = anthropic.Anthropic()
+response = client.messages.create(
+    model="claude-opus-5-5",
+    max_tokens=16000,
+    system="You are a friendly tutor. Answer in simple Tanglish.",
+    messages=[{"role": "user", "content": "REST API na enna?"}],
+)
+for block in response.content:
+    if block.type == "text":
+        print(block.text)</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Parameter</th><th>Required?</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>model</code></td><td>Yes</td><td>Exact model ID. Typo pannaa 404 (Lesson 5-la full list)</td></tr>
+        <tr><td><code>max_tokens</code></td><td>Yes</td><td>Output-oda <b>hard ceiling</b>. Romba kammi vechaa answer nadula cut aagum. Non-streaming ~16000, streaming ~64000 nalla default</td></tr>
+        <tr><td><code>messages</code></td><td>Yes</td><td><code>{role, content}</code> list. First message <code>user</code>-aa irukkanum</td></tr>
+        <tr><td><code>system</code></td><td>No</td><td>Role, rules, tone. Top-level field; messages-kkulla illa</td></tr>
+        <tr><td><code>thinking</code>, <code>output_config</code></td><td>No</td><td>Thinking + effort (Lesson 5)</td></tr>
+        <tr><td><code>tools</code>, <code>tool_choice</code></td><td>No</td><td>Function calling (Lesson 7)</td></tr>
+        <tr><td><code>stop_sequences</code></td><td>No</td><td>Indha text vandha stop</td></tr>
+        <tr><td><code>cache_control</code></td><td>No</td><td>Prompt caching (Lesson 5)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><code>temperature</code> / <code>top_p</code> / <code>top_k</code>: Opus 5.5, Fable 5.x, Opus 4.7+ models-la <b>removed</b>, anuppina 400 error. Pazhaiya tutorials-la paatha copy pannaadheenga. Output control-ku effort + prompt use pannunga.</div>
+  </section>
+
+  <!-- RESPONSE -->
+  <section id="response">
+    <div class="sec-head">
+      <span class="eyebrow">Step 3 · Read the output</span>
+      <h2>Response shape</h2>
+    </div>
+    <div class="term"><div class="term-bar"><span>response (simplified)</span></div><pre>{
+  "id": "msg_...",
+  "model": "claude-opus-5-5",
+  "role": "assistant",
+  "content": [
+    { "type": "thinking", "thinking": "" },          <span class="c">// Opus 5.5-la thinking eppovum on; text default empty</span>
+    { "type": "text", "text": "REST API na..." }
+  ],
+  "stop_reason": "end_turn",
+  "usage": { "input_tokens": 31, "output_tokens": 412,
+             "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0 }
+}</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th><code>stop_reason</code></th><th>Meaning</th><th>Unga code enna pannanum</th></tr></thead>
+      <tbody>
+        <tr><td><code>end_turn</code></td><td>Normal-aa mudinjudhu</td><td>Answer use pannunga</td></tr>
+        <tr><td><code>max_tokens</code></td><td><code>max_tokens</code> limit-la cut aachu</td><td>Increase pannunga, illa streaming</td></tr>
+        <tr><td><code>stop_sequence</code></td><td>Unga stop sequence vandhudhu</td><td>Expected</td></tr>
+        <tr><td><code>tool_use</code></td><td>Claude tool call pannanum nu kekkudhu</td><td>Tool run panni result anuppunga (Lesson 7)</td></tr>
+        <tr><td><code>pause_turn</code></td><td>Server tool loop pause</td><td>Same request continue pannunga</td></tr>
+        <tr><td><code>refusal</code></td><td>Safety reason-aa decline</td><td><code>stop_details.category</code> + <code>explanation</code> paarunga; content-ah blind-aa use pannaadheenga</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>console.log(response.content[0].text);</pre><p>Mudhal block <code>thinking</code>-aa irukkalaam; TypeScript-um error kudukkum. Refusal-aa irundhaa kooda check illa.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>if (response.stop_reason === "refusal") { /* handle */ }
+const text = response.content
+  .filter((b) =&gt; b.type === "text")
+  .map((b) =&gt; b.text).join("");</pre><p>stop_reason mudhalla, apram type narrow panni text.</p></div>
+    </div>
+  </section>
+
+  <!-- MULTI-TURN -->
+  <section id="multiturn">
+    <div class="sec-head">
+      <span class="eyebrow">Step 4 · Conversations</span>
+      <h2>Multi-turn: API is stateless</h2>
+      <p class="muted">Server unga pazhaiya messages-ah nyaabagam vechukkaadhu. Ovvoru request-layum <b>full history</b> anuppanum.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>chat.ts</span></div><pre>import Anthropic from "@anthropic-ai/sdk";
+const client = new Anthropic();
+
+const messages: Anthropic.MessageParam[] = [];   // SDK type; sondha interface vendaam
+
+async function chat(userText: string) {
+  messages.push({ role: "user", content: userText });
+  const response = await client.messages.create({
+    model: "claude-opus-5-5", max_tokens: 16000, messages,
+  });
+  messages.push({ role: "assistant", content: response.content });  // full content, text mattum illa
+  return response.content.filter((b) =&gt; b.type === "text").map((b) =&gt; b.text).join("");
+}
+
+console.log(await chat("En peru Vijay."));
+console.log(await chat("En peru enna?"));   // history anuppunadhaala "Vijay" nu sollum</pre></div>
+    <div class="note">History neelamaa aaga aaga input tokens (cost) koodum. Theervu: prompt caching, compaction, context editing (Lesson 5, 6).</div>
+  </section>
+
+  <!-- STREAM -->
+  <section id="stream">
+    <div class="sec-head">
+      <span class="eyebrow">Step 5 · Streaming</span>
+      <h2>Streaming: word by word</h2>
+      <p class="muted">Yen? (1) Chat UI-la user udane paappaar. (2) Periya <code>max_tokens</code> / long output-la HTTP timeout varaadhu.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>stream.ts</span></div><pre>const stream = client.messages.stream({
+  model: "claude-opus-5-5",
+  max_tokens: 64000,
+  messages: [{ role: "user", content: "Express middleware explain pannu" }],
+});
+
+stream.on("text", (delta) =&gt; process.stdout.write(delta));   // text delta mattum
+
+const final = await stream.finalMessage();      // full Message object
+console.log("\nOutput tokens:", final.usage.output_tokens);</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Event</th><th>Eppo</th></tr></thead>
+      <tbody>
+        <tr><td><code>message_start</code></td><td>Start-la oru thadava (metadata)</td></tr>
+        <tr><td><code>content_block_start</code></td><td>Puthu block (text / thinking / tool_use) start</td></tr>
+        <tr><td><code>content_block_delta</code></td><td>Ovvoru chunk: <code>text_delta</code>, <code>thinking_delta</code>, <code>input_json_delta</code></td></tr>
+        <tr><td><code>content_block_stop</code></td><td>Block mudinjadhu</td></tr>
+        <tr><td><code>message_delta</code> / <code>message_stop</code></td><td>stop_reason, usage; mudivu</td></tr>
+      </tbody>
+    </table></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>await new Promise((resolve) =&gt; {
+  stream.on("end", resolve);  // sondha wrapper
+});</pre><p>Errors, abort ellam miss aagum. SDK already panniduchu.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>const final = await stream.finalMessage();</pre><p>SDK helper. Completion, error, abort ellam handle pannum.</p></div>
+    </div>
+  </section>
+
+  <!-- VISION -->
+  <section id="vision">
+    <div class="sec-head">
+      <span class="eyebrow">Step 6 · Multimodal</span>
+      <h2>Images &amp; PDFs</h2>
+      <p class="muted"><code>content</code> string-aa illaama <b>blocks array</b>-aa anuppunga. Image/document block-ah text-ku <b>munnadi</b> podunga.</p>
+    </div>
+    <div class="term"><div class="term-bar"><span>vision.ts</span></div><pre>import fs from "fs";
+
+const imageData = fs.readFileSync("./screenshot.png").toString("base64");
+const pdfData = fs.readFileSync("./invoice.pdf").toString("base64");
+
+const response = await client.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  messages: [{
+    role: "user",
+    content: [
+      { type: "image", source: { type: "base64", media_type: "image/png", data: imageData } },
+      { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfData } },
+      { type: "text", text: "Screenshot-la error enna? Invoice total evvalavu?" },
+    ],
+  }],
+});</pre></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Source type</th><th>Example</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td><code>base64</code></td><td><code>{type:"base64", media_type, data}</code></td><td>Local file. Base64 string-la newlines irukka koodaadhu</td></tr>
+        <tr><td><code>url</code></td><td><code>{type:"url", url:"https://..."}</code></td><td>Public image URL</td></tr>
+        <tr><td><code>file</code></td><td><code>{type:"file", file_id:"file_..."}</code></td><td>Files API-la upload pannadhu (next step)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">PDF limits: 32 MB request, 600 pages (200K-context models-ku 100). ESM <code>.ts</code> file-la <code>__dirname</code> illa: <code>"./file.pdf"</code> maadhiri relative path use pannunga.</div>
+  </section>
+
+  <!-- FILES & CITATIONS -->
+  <section id="files">
+    <div class="sec-head">
+      <span class="eyebrow">Step 7 · Reuse &amp; trust</span>
+      <h2>Files API &amp; citations</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>Feature</th><th>Enna</th><th>Key facts</th></tr></thead>
+      <tbody>
+        <tr><td><code>Files API</code></td><td>Oru thadava upload, <code>file_id</code> vachu pala requests-la use</td><td>Ippo GA: <code>client.files.*</code>, beta header vendaam. 500 MB per file, org-ku 100 GB. Upload/list/delete free; messages-la use pannina input tokens bill. Bedrock / Vertex-la illa</td></tr>
+        <tr><td><code>Citations</code></td><td>Answer-la endha line document-la irundhu vandhudhu nu proof</td><td>Ovvoru <code>document</code> block-layum <code>citations: { enabled: true }</code> (ellathukkum or edhukkum illa). Structured output (<code>output_config.format</code>) kooda serthaa 400</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>files.ts</span></div><pre>import Anthropic, { toFile } from "@anthropic-ai/sdk";
+import fs from "fs";
+const client = new Anthropic();
+
+const uploaded = await client.files.upload({
+  file: await toFile(fs.createReadStream("report.pdf"), undefined, { type: "application/pdf" }),
+});
+
+const response = await client.messages.create({
+  model: "claude-opus-5-5",
+  max_tokens: 16000,
+  messages: [{
+    role: "user",
+    content: [
+      { type: "document", source: { type: "file", file_id: uploaded.id },
+        title: "Q4 Report", citations: { enabled: true } },
+      { type: "text", text: "Revenue growth evvalavu? Source kaattu." },
+    ],
+  }],
+});
+
+for (const block of response.content) {
+  if (block.type === "text") {
+    console.log(block.text);
+    for (const c of block.citations ?? []) console.log("  ↳", c.cited_text);
+  }
+}</pre></div>
+    <div class="note">Citation location types: <code>page_location</code> (PDF, 1-indexed pages), <code>char_location</code> (plain text), <code>content_block_location</code> (custom content). Exam angle: "hallucination kammi pannanum, source verify pannanum" = citations.</div>
+  </section>
+
+  <!-- ERRORS -->
+  <section id="errors">
+    <div class="sec-head">
+      <span class="eyebrow">Step 8 · Production</span>
+      <h2>Errors, retries, rate limits</h2>
+    </div>
+    <div class="tbl"><table>
+      <thead><tr><th>HTTP</th><th>TS class</th><th>Retry?</th><th>Usual cause</th></tr></thead>
+      <tbody>
+        <tr><td><code>400</code></td><td><code>BadRequestError</code></td><td>No</td><td>Wrong params, removed param (temperature, budget_tokens)</td></tr>
+        <tr><td><code>401</code></td><td><code>AuthenticationError</code></td><td>No</td><td>Key illa / thappu</td></tr>
+        <tr><td><code>403</code></td><td><code>PermissionDeniedError</code></td><td>No</td><td>Org/workspace-ku permission illa</td></tr>
+        <tr><td><code>404</code></td><td><code>NotFoundError</code></td><td>No</td><td>Model ID typo</td></tr>
+        <tr><td><code>413</code></td><td>(<code>APIError</code>)</td><td>No</td><td>Request too large</td></tr>
+        <tr><td><code>429</code></td><td><code>RateLimitError</code></td><td>Yes</td><td>Rate limit; <code>retry-after</code> header respect pannunga</td></tr>
+        <tr><td><code>500</code> / <code>529</code></td><td><code>InternalServerError</code></td><td>Yes</td><td>Server issue / overloaded</td></tr>
+        <tr><td><code>network</code></td><td><code>APIConnectionError</code></td><td>Yes</td><td>Connection fail</td></tr>
+      </tbody>
+    </table></div>
+    <div class="term"><div class="term-bar"><span>errors.ts</span></div><pre>const client = new Anthropic({
+  maxRetries: 4,      // default 2: 408, 409, 429, 5xx, connection errors auto-retry
+  timeout: 60_000,    // TypeScript-la MILLISECONDS (Python-la seconds!)
+});
+
+try {
+  const res = await client.messages.create({ /* ... */ });
+} catch (err) {
+  if (err instanceof Anthropic.NotFoundError) {
+    console.error("Model ID check pannunga");             // fix code, retry vendaam
+  } else if (err instanceof Anthropic.RateLimitError) {
+    console.error("Rate limited, backoff panni later");   // retryable
+  } else if (err instanceof Anthropic.APIConnectionError) {
+    console.error("Network issue");                         // APIError-ku MUNNADI check
+  } else if (err instanceof Anthropic.APIError) {
+    console.error(`API error ${err.status}: ${err.message}`);
+  } else {
+    throw err;
+  }
+}
+
+// Per-request override:
+await client.messages.create({ /* ... */ }, { timeout: 5_000 });</pre></div>
+    <div class="vs">
+      <div class="bad"><span class="tag">Wrong</span><pre>catch (e) {
+  if (e.message.includes("rate")) retry();
+}</pre><p>String matching. Message maarina break aagum; retryable vs non-retryable theriyaadhu.</p></div>
+      <div class="good"><span class="tag">Right</span><pre>catch (e) {
+  if (e instanceof Anthropic.RateLimitError) ...
+}</pre><p>Typed classes, most-specific first. TS-la <code>APIConnectionError</code> <code>APIError</code>-oda subclass, adhanaala adhai mudhalla check.</p></div>
+    </div>
+    <div class="note">Timeout-um retry aagum: worst case wall-clock = <code>timeout × (maxRetries + 1)</code>. Production-la idhai calculate pannunga.</div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section id="practice">
+    <div class="sec-head">
+      <span class="eyebrow">Step 9 · Your turn</span>
+      <h2>Practice: <code>ask.ts</code> CLI</h2>
+      <p class="muted">Neengalae type pannunga. Claude Code-ah ezhudha sollaadheenga; stuck aana mattum "explain this error" nu kelunga.</p>
+      <span class="counter" id="count">0 / 10 done</span>
+    </div>
+    <ol class="steps">
+      <li><input type="checkbox" id="s1"><label for="s1"><span class="n"></span><span>Step 1 terminal commands run panni <code>claude-api-lab/</code> ready pannunga, <code>git init</code></span></label></li>
+      <li><input type="checkbox" id="s2"><label for="s2"><span class="n"></span><span>Credential: <code>ant auth login</code> illa <code>export ANTHROPIC_API_KEY=...</code>. Key-ah endha file-layum ezhudhaadheenga</span></label></li>
+      <li><input type="checkbox" id="s3"><label for="s3"><span class="n"></span><span><code>hello.ts</code> type panni <code>npx tsx hello.ts</code></span></label></li>
+      <li><input type="checkbox" id="s4"><label for="s4"><span class="n"></span><span><code>ask.ts</code>: <code>process.argv.slice(2).join(" ")</code>-ah question-aa eduthu answer print. <code>npx tsx ask.ts "closure na enna"</code></span></label></li>
+      <li><input type="checkbox" id="s5"><label for="s5"><span class="n"></span><span><code>stop_reason</code> + <code>usage</code> print pannunga. <code>max_tokens: 50</code> vechu <code>max_tokens</code> stop paarunga</span></label></li>
+      <li><input type="checkbox" id="s6"><label for="s6"><span class="n"></span><span>Streaming version: <code>stream.on("text")</code> + <code>finalMessage()</code></span></label></li>
+      <li><input type="checkbox" id="s7"><label for="s7"><span class="n"></span><span><code>chat.ts</code>: 3-turn conversation, history array vachu</span></label></li>
+      <li><input type="checkbox" id="s8"><label for="s8"><span class="n"></span><span>Oru screenshot-ah base64 image-aa anuppi "idhula enna irukku" kelunga</span></label></li>
+      <li><input type="checkbox" id="s9"><label for="s9"><span class="n"></span><span>Model ID-la typo podunga (<code>claude-opus-5.5</code>). Endha error class vandhudhu? Catch chain ezhudhunga</span></label></li>
+      <li><input type="checkbox" id="s10"><label for="s10"><span class="n"></span><span><code>git status</code>: <code>.env</code> list-la varalaa nu confirm, apram commit</span></label></li>
+    </ol>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz">
+    <div class="sec-head">
+      <span class="eyebrow">Step 10 · Check</span>
+      <h2>Quick quiz (exam style)</h2>
+    </div>
+    <div class="stack">
+      <details><summary>1. User 3rd message-la "en peru enna" kekkuraar, Claude-ku theriyala. Yen?</summary><p>API <b>stateless</b>. Mundhaya user + assistant messages-ah ovvoru request-layum <code>messages</code>-la anuppanum.</p></details>
+      <details><summary>2. Long report generate pannum podhu request timeout aagudhu. Best fix?</summary><p><b>Streaming</b> (<code>messages.stream</code> + <code>finalMessage()</code>). Large <code>max_tokens</code> non-streaming-la HTTP timeout risk.</p></details>
+      <details><summary>3. <code>stop_reason: "max_tokens"</code> vandhudhu. Meaning + fix?</summary><p>Output limit-la cut aachu, answer incomplete. <code>max_tokens</code> increase pannunga (streaming kooda).</p></details>
+      <details><summary>4. 429 vs 400: edhai retry pannanum?</summary><p><b>429</b> (rate limit) retryable, <code>retry-after</code> respect pannunga. <b>400</b> request-la thappu; retry pannaalum same error, code fix pannanum.</p></details>
+      <details><summary>5. Same 200-page PDF-ah 50 questions-ku use pannanum. Efficient vazhi?</summary><p><b>Files API</b>-la oru thadava upload, <code>file_id</code> reference. Kooda prompt caching (Lesson 5) serthaa input cost-um kurayum.</p></details>
+      <details><summary>6. Legal app-la answer-ku source proof venum. Endha feature?</summary><p><b>Citations</b>: document blocks-la <code>citations: {enabled: true}</code>. Response text blocks-la <code>cited_text</code> + page location varum.</p></details>
+    </div>
+  </section>
+
+  <section id="interview">
+    <div class="interview stack">
+      <span class="eyebrow">Interview line</span>
+      <p>"Claude API stateless Messages endpoint. Naan official SDK use panni key-ah env-la vechuppen, stop_reason check pannuven, long outputs-ku streaming + finalMessage, errors-ku typed exception chain: 429/5xx retry, 4xx fix."</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY = "lesson04-steps";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll("ol.steps input"));
+  var count = document.getElementById("count");
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { saved = {}; }
+  function render(){
+    var done = 0;
+    boxes.forEach(function(b){ b.closest("li").classList.toggle("done", b.checked); if (b.checked) done++; });
+    count.textContent = done + " / " + boxes.length + " done";
+  }
+  boxes.forEach(function(b){
+    b.checked = !!saved[b.id];
+    b.addEventListener("change", function(){
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      render();
+    });
+  });
+  render();
+})();
+</script>
+
+<script src="nav.js"></script>
